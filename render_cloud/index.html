@@ -1,0 +1,3214 @@
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<meta name="apple-mobile-web-app-capable"
+content="yes">
+
+<meta name="mobile-web-app-capable"
+content="yes">
+
+<link rel="manifest" href="/manifest.json">
+
+<meta name="theme-color" content="#0f172a">
+
+<link
+  rel="apple-touch-icon"
+  href="/icons/apple-touch-icon.png">
+
+<meta
+  name="apple-mobile-web-app-title"
+  content="RAMATECH AI">
+
+<meta
+  name="apple-mobile-web-app-status-bar-style"
+  content="black-translucent">
+
+
+<title>RAMATECH HOME AI</title>
+
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+
+    margin: 0;
+
+    padding: 0;
+
+    font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+    background: #0f172a;
+
+    color: white;
+
+    text-align: center;
+
+    -webkit-text-size-adjust: 100%;
+
+}
+
+
+.container {
+
+    width: 100%;
+
+    max-width: 620px;
+
+    margin: auto;
+
+    padding: 18px;
+
+}
+
+
+h1 {
+
+    color: #38bdf8;
+
+    font-size: 30px;
+
+    margin-bottom: 5px;
+
+}
+
+
+.subtitle {
+
+    color: #cbd5e1;
+
+}
+
+
+.card {
+
+    background: #1e293b;
+
+    border-radius: 18px;
+
+    padding: 20px;
+
+    margin: 15px 0;
+
+    box-shadow:
+    0 5px 20px rgba(0,0,0,0.25);
+
+}
+
+
+button {
+
+    appearance: none;
+
+    -webkit-appearance: none;
+
+    border: none;
+
+    border-radius: 14px;
+
+    padding: 16px 20px;
+
+    margin: 6px;
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    min-height: 52px;
+
+}
+
+
+button:active {
+
+    transform: scale(0.97);
+
+}
+
+
+.on {
+
+    background: #22c55e;
+
+    color: white;
+
+}
+
+
+.off {
+
+    background: #ef4444;
+
+    color: white;
+
+}
+
+
+.all {
+
+    background: #38bdf8;
+
+    color: #020617;
+
+    width: 90%;
+
+}
+
+
+.voice {
+
+    background: #06b6d4;
+
+    color: white;
+
+    width: 95%;
+
+    font-size: 20px;
+
+    min-height: 60px;
+
+}
+
+
+.welcomeButton {
+
+    background: #8b5cf6;
+
+    color: white;
+
+    width: 95%;
+
+    font-size: 19px;
+
+    min-height: 60px;
+
+}
+
+
+.stopButton {
+
+    background: #475569;
+
+    color: white;
+
+    width: 95%;
+
+}
+
+
+.welcome {
+
+    background: #020617;
+
+    border: 1px solid #38bdf8;
+
+    color: #bae6fd;
+
+    padding: 18px;
+
+    border-radius: 15px;
+
+    line-height: 1.7;
+
+}
+
+
+.status {
+
+    font-size: 18px;
+
+    margin: 10px;
+
+}
+
+
+#voiceStatus {
+
+    color: #facc15;
+
+    font-weight: bold;
+
+    line-height: 1.5;
+
+}
+
+
+#transcript {
+
+    background: #020617;
+
+    padding: 15px;
+
+    border-radius: 10px;
+
+    margin-top: 10px;
+
+    min-height: 30px;
+
+    word-wrap: break-word;
+
+}
+
+
+#response {
+
+    color: #86efac;
+
+    margin-top: 15px;
+
+    font-weight: bold;
+
+    line-height: 1.6;
+
+}
+
+
+#systemStatus {
+
+    font-weight: bold;
+
+}
+
+
+#browserStatus {
+
+    color: #fbbf24;
+
+    font-size: 14px;
+
+    line-height: 1.5;
+
+}
+
+
+body.presentation-mode .container{max-width:1100px} body.presentation-mode #tetfundPanel{font-size:1.25rem;padding:32px;border:2px solid #38bdf8} body.presentation-mode #tetfundPanel h2{font-size:2rem} body.presentation-mode #tetfundPanel p{line-height:1.8}
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h1>RAMATECH HOME AI</h1>
+
+
+<p class="subtitle">
+
+ESP32 SMART HOME — ESP32 ONLY · LOCAL + CLOUD · MULTILINGUAL VOICE
+
+</p>
+
+
+<div class="card" id="remoteCard">
+
+<h2>🌍 REMOTE INTERNET CONTROL</h2>
+
+<p id="cloudStatus">🔴 Not connected to RAMATECH Cloud</p>
+
+<button class="voice" onclick="connectCloud()">🔐 CONNECT TO RAMATECH CLOUD</button>
+
+<p style="font-size:14px;color:#cbd5e1">Use your RAMATECH Cloud access code.</p>
+
+</div>
+
+<div class="card">
+<h2>⏱ Prepaid demonstration credit</h2>
+<p id="meterStatus">Waiting for ESP32 meter status...</p>
+<label for="demoMinutes">Researcher demo top-up (minutes)</label>
+<input id="demoMinutes" type="number" min="1" max="1440" value="5" style="padding:12px;width:100%;border-radius:10px">
+<button class="voice" onclick="topUpDemoCredit()">Add DEMO time credit</button>
+<p style="font-size:12px;color:#cbd5e1">Time-based demonstration only. This is not kWh metering and this button is not a payment.</p>
+</div>
+
+
+
+<!-- ================================================= -->
+<!-- WELCOME -->
+<!-- ================================================= -->
+
+<div class="card welcome">
+
+<h2>🤖 WELCOME BOSS</h2>
+
+
+<p>
+
+Hi Boss, my name is <strong>RAMADAN</strong>.
+
+I am your Ramatech home AI smart home assistant.
+
+</p>
+
+
+<p>
+
+I was designed, programmed and developed by
+
+<strong>Ramatechcode Lab</strong>
+
+to make life very easy for you.
+
+</p>
+
+
+<p>
+
+I can currently control your appliances such as:
+
+<br>
+
+💡 Light
+
+<br>
+
+💡 Rope Light
+
+<br>
+
+🌀 Fan
+
+<br>
+
+📺 Television
+
+</p>
+
+
+<p>
+
+Press the button below to hear my welcome message.
+
+</p>
+
+
+</div>
+
+
+<button
+
+class="welcomeButton"
+
+onclick="playWelcome()">
+
+🔊 HEAR RAMADAN WELCOME
+
+</button>
+
+
+<!-- ================================================= -->
+<!-- LIGHT -->
+<!-- ================================================= -->
+
+<div class="card">
+
+<h2>💡 LIGHT</h2>
+
+
+<div id="lightStatus"
+class="status">
+
+Checking...
+
+</div>
+
+
+<button
+class="on"
+onclick="control('light','on')">
+
+TURN ON
+
+</button>
+
+
+<button
+class="off"
+onclick="control('light','off')">
+
+TURN OFF
+
+</button>
+
+</div>
+
+
+<!-- ================================================= -->
+<!-- ROPE -->
+<!-- ================================================= -->
+
+<div class="card">
+
+<h2>💡 ROPE LIGHT</h2>
+
+
+<div id="ropeStatus"
+class="status">
+
+Checking...
+
+</div>
+
+
+<button
+class="on"
+onclick="control('rope','on')">
+
+TURN ON
+
+</button>
+
+
+<button
+class="off"
+onclick="control('rope','off')">
+
+TURN OFF
+
+</button>
+
+</div>
+
+
+<!-- ================================================= -->
+<!-- FAN -->
+<!-- ================================================= -->
+
+<div class="card">
+
+<h2>🌀 FAN</h2>
+
+
+<div id="fanStatus"
+class="status">
+
+Checking...
+
+</div>
+
+
+<button
+class="on"
+onclick="control('fan','on')">
+
+TURN ON
+
+</button>
+
+
+<button
+class="off"
+onclick="control('fan','off')">
+
+TURN OFF
+
+</button>
+
+</div>
+
+
+<!-- ================================================= -->
+<!-- TV -->
+<!-- ================================================= -->
+
+<div class="card">
+
+<h2>📺 TV</h2>
+
+
+<div id="tvStatus"
+class="status">
+
+Checking...
+
+</div>
+
+
+<button
+class="on"
+onclick="control('tv','on')">
+
+TURN ON
+
+</button>
+
+
+<button
+class="off"
+onclick="control('tv','off')">
+
+TURN OFF
+
+</button>
+
+</div>
+
+
+<!-- ================================================= -->
+<!-- ALL DEVICES -->
+<!-- ================================================= -->
+
+<div class="card">
+
+<h2>⚡ ALL DEVICES</h2>
+
+
+<button
+class="all"
+onclick="allControl('on')">
+
+ALL ON
+
+</button>
+
+
+<button
+class="all"
+onclick="allControl('off')">
+
+ALL OFF
+
+</button>
+
+</div>
+
+
+<!-- ================================================= -->
+<!-- VOICE -->
+<!-- ================================================= -->
+
+<div class="card">
+
+<h2>🎤 RAMADAN VOICE CONTROL</h2>
+
+
+<p>
+
+Tap the microphone and say:
+
+</p>
+
+
+<p>
+
+<strong>
+
+"RAMADAN, turn on the fan."
+
+</strong>
+
+</p>
+
+
+<label for="voiceLanguage" style="display:block;margin:12px 0 6px">Assistant language</label>
+<select id="voiceLanguage" style="width:100%;padding:12px;border-radius:10px">
+<option value="en-NG">Nigerian English</option>
+<option value="yo-NG">Yoruba</option>
+<option value="ha-NG">Hausa</option>
+<option value="ig-NG">Igbo</option>
+</select>
+
+<button
+
+class="voice"
+
+onclick="startVoice()">
+
+🎤 SPEAK TO RAMADAN
+
+</button>
+
+
+<button
+
+class="stopButton"
+
+onclick="stopVoice()">
+
+⏹ STOP VOICE
+
+</button>
+
+
+<p id="voiceStatus">
+
+Ready. Press SPEAK TO RAMADAN.
+
+</p>
+
+
+<div id="transcript">
+
+You said: Waiting...
+
+</div>
+
+
+<div id="response">
+
+RAMATECH HOME AI: Ready Boss.
+
+</div>
+
+
+<div id="browserStatus">
+
+Checking phone and browser voice support...
+
+</div>
+
+
+</div>
+
+
+<!-- ================================================= -->
+<!-- TYPED COMMANDS -->
+<!-- ================================================= -->
+<div class="card">
+<h2>⌨️ TYPE A COMMAND</h2>
+<p>Commands are sent directly to the connected ESP32 through the authenticated cloud link.</p>
+<input id="typedCommand" type="text" autocomplete="off" placeholder="Example: turn on the fan" style="width:100%;padding:15px;border-radius:10px;border:0;font-size:16px">
+<button class="voice" onclick="sendTypedCommand()">SEND COMMAND</button>
+</div>
+
+<!-- ================================================= -->
+<!-- TETFUND PRESENTATION -->
+<!-- ================================================= -->
+<div class="card welcome" id="tetfundPanel">
+<h2>🏛️ TETFund TECHNOLOGY EXHIBITION</h2>
+<p><strong>RAMATECH HOME AI — Nigerian innovation for intelligent living.</strong></p>
+<p>Demonstrate practical home automation, multilingual human-computer interaction, embedded systems, and the potential of locally developed technology to support education, research and innovation.</p>
+<label for="presentationLanguage">Presentation language</label>
+<select id="presentationLanguage" style="width:100%;padding:12px;border-radius:10px">
+<option value="en-NG">English</option><option value="yo-NG">Yoruba</option><option value="ha-NG">Hausa</option><option value="ig-NG">Igbo</option>
+</select>
+<button class="welcomeButton" onclick="tetfundGreeting()">🎤 WELCOME TETFUND GUESTS</button>
+<button class="voice" onclick="tetfundInnovation()">💡 EXPLAIN THE INNOVATION</button>
+<button class="voice" onclick="tetfundImpact()">🚀 MOTIVATIONAL MESSAGE</button>
+<button class="stopButton" onclick="togglePresentation()">⛶ PRESENTATION MODE</button>
+<p id="presentationStatus">Ready for exhibition demonstration.</p>
+</div>
+
+<!-- ================================================= -->
+<!-- SYSTEM STATUS -->
+<!-- ================================================= -->
+
+<div class="card">
+
+<h3>⚙️ SYSTEM STATUS</h3>
+
+
+<div id="systemStatus">
+
+Connecting...
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+<script>
+
+
+// =====================================================
+// VARIABLES
+// =====================================================
+
+let recognition = null;
+
+let recognitionRunning = false;
+
+let speechSpeaking = false;
+
+
+// =====================================================
+// FIND SPEECH RECOGNITION
+// =====================================================
+
+const SpeechRecognitionAPI =
+
+    window.SpeechRecognition ||
+
+    window.webkitSpeechRecognition;
+
+
+// =====================================================
+// DEVICE CONTROL
+// =====================================================
+
+let cloudSocket = null;
+let cloudConnected = false;
+let cloudAccessCode = sessionStorage.getItem("RAMATECH_ACCESS_CODE") || "";
+const CLOUD_WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws";
+
+function setCloudStatus(text, good=false) {
+    const el = document.getElementById("cloudStatus");
+    if (el) el.innerHTML = good ? "🟢 " + text : "🔴 " + text;
+}
+
+function connectCloud() {
+    if (!cloudAccessCode) {
+        cloudAccessCode = prompt("Enter your RAMATECH HOME AI access code:") || "";
+    }
+    if (!cloudAccessCode) {
+        setCloudStatus("Access code required");
+        return;
+    }
+    sessionStorage.setItem("RAMATECH_ACCESS_CODE", cloudAccessCode);
+    if (cloudSocket) { try { cloudSocket.close(); } catch(e) {} }
+    setCloudStatus("Connecting...");
+    cloudSocket = new WebSocket(CLOUD_WS_URL);
+    cloudSocket.onopen = function() {
+        cloudSocket.send(JSON.stringify({type:"auth", role:"browser", code:cloudAccessCode}));
+    };
+    cloudSocket.onmessage = function(event) {
+        try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === "auth_ok") {
+                cloudConnected = true;
+                setCloudStatus("RAMATECH Cloud connected", true);
+                requestCloudStatus();
+            } else if (msg.type === "auth_error") {
+                cloudConnected = false;
+                sessionStorage.removeItem("RAMATECH_ACCESS_CODE");
+                cloudAccessCode = "";
+                setCloudStatus("Wrong access code");
+            } else if (msg.type === "status") {
+                renderRemoteStatus(msg);
+            } else if (msg.type === "device_offline") {
+                cloudConnected = true;
+                setCloudStatus("Cloud connected, ESP32 is offline");
+                document.getElementById("systemStatus").innerHTML = "🔴 ESP32 OFFLINE";
+            } else if (msg.type === "command_result") {
+                if (msg.ok) {
+                    speak(msg.message || "Alright Boss. Command completed.");
+                } else {
+                    speak(msg.message || "Sorry Boss. The command could not be completed.");
+                }
+                requestCloudStatus();
+            }
+        } catch(e) { console.log("Cloud message error", e); }
+    };
+    cloudSocket.onclose = function() {
+        cloudConnected = false;
+        setCloudStatus("Cloud connection closed");
+    };
+    cloudSocket.onerror = function() {
+        cloudConnected = false;
+        setCloudStatus("Cloud connection error");
+    };
+}
+
+function sendCloud(payload) {
+    if (!cloudSocket || cloudSocket.readyState !== WebSocket.OPEN || !cloudConnected) {
+        speak("Sorry Boss. The remote cloud connection is not ready. Press CONNECT TO RAMATECH CLOUD first.");
+        return Promise.reject(new Error("Cloud not connected"));
+    }
+    cloudSocket.send(JSON.stringify(payload));
+    return Promise.resolve("sent");
+}
+
+function control(device, state) {
+    return sendCloud({type:"command", deviceId:"RAMATECH_HOME_01", device:device, state:state});
+}
+
+function allControl(state) {
+    return sendCloud({type:"all", deviceId:"RAMATECH_HOME_01", state:state});
+}
+
+function requestCloudStatus() {
+    return sendCloud({type:"status_request", deviceId:"RAMATECH_HOME_01"});
+}
+
+function renderRemoteStatus(data) {
+    document.getElementById("lightStatus").innerHTML = data.light ? "🟢 ON" : "🔴 OFF";
+    document.getElementById("ropeStatus").innerHTML = data.rope ? "🟢 ON" : "🔴 OFF";
+    document.getElementById("fanStatus").innerHTML = data.fan ? "🟢 ON" : "🔴 OFF";
+    document.getElementById("tvStatus").innerHTML = data.tv ? "🟢 ON" : "🔴 OFF";
+    document.getElementById("systemStatus").innerHTML = data.online ? "🟢 ESP32 ONLINE" : "🔴 ESP32 OFFLINE";
+    const meter = document.getElementById("meterStatus");
+    if (meter) meter.textContent = `Mode: ${data.mode || "HOME_AI"} · Demo time credit: ${Math.floor((data.prepaidSeconds || 0)/60)} min ${(data.prepaidSeconds || 0)%60} sec · Load: ${data.prepaidActive ? "credit available" : "no credit"}`;
+}
+
+function topUpDemoCredit() {
+    const minutes = Number(document.getElementById("demoMinutes").value);
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) {
+        speak("Please enter a demo top-up between one and fourteen hundred and forty minutes.");
+        return;
+    }
+    sendCloud({type:"meter_topup", deviceId:"RAMATECH_HOME_01", minutes:minutes})
+      .then(() => speak("Demo time credit top-up command sent."))
+      .catch(() => speak("I could not send the demo credit command. Check cloud connection."));
+}
+
+function updateStatus() {
+    if (cloudConnected) requestCloudStatus();
+    else document.getElementById("systemStatus").innerHTML = "🟠 CLOUD NOT CONNECTED";
+}
+
+// =====================================================
+// TEXT TO SPEECH
+// =====================================================
+
+function speak(message) {
+
+
+    document.getElementById(
+
+        "response"
+
+    ).innerHTML =
+
+        "RAMATECH HOME AI: " +
+
+        message;
+
+
+    document.getElementById(
+
+        "voiceStatus"
+
+    ).innerHTML =
+
+        "🔊 RAMADAN is speaking...";
+
+
+    if (
+
+        !("speechSynthesis" in window)
+
+    ) {
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "❌ Phone speech is not available.";
+
+        return;
+
+    }
+
+
+    // Stop previous speech
+
+    window.speechSynthesis.cancel();
+
+
+    const speech =
+
+        new SpeechSynthesisUtterance(
+
+            message
+
+        );
+
+
+    speech.lang = document.getElementById("voiceLanguage")?.value || "en-NG";
+
+
+    speech.rate = 0.88;
+
+
+    speech.pitch = 1.0;
+
+
+    speech.volume = 1.0;
+
+
+    speech.onstart = function() {
+
+        speechSpeaking = true;
+
+    };
+
+
+    speech.onend = function() {
+
+        speechSpeaking = false;
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "Ready. Press SPEAK TO RAMADAN.";
+
+    };
+
+
+    speech.onerror = function(event) {
+
+        speechSpeaking = false;
+
+
+        console.log(
+
+            "Speech synthesis error:",
+
+            event
+
+        );
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "❌ Phone could not play the voice.";
+
+    };
+
+
+    window.speechSynthesis.speak(
+
+        speech
+
+    );
+
+}
+
+
+// =====================================================
+// WELCOME SPEECH
+// =====================================================
+
+function playWelcome() {
+
+
+    const welcome =
+
+        "Hi Boss. My name is RAMADAN. " +
+
+        "I am your RAMATECH HOME AI smart home assistant. " +
+
+        "I was designed, programmed and developed by Ramatechcode Lab " +
+
+        "to make life very easy for you. " +
+
+        "I can currently control your light, rope light, fan and television. " +
+
+        "I am ready to assist you Boss.";
+
+
+    speak(welcome);
+
+}
+
+
+// =====================================================
+// SPEECH RECOGNITION INITIALIZATION
+// =====================================================
+
+function setupRecognition() {
+
+
+    if (!SpeechRecognitionAPI) {
+
+
+        document.getElementById(
+
+            "browserStatus"
+
+        ).innerHTML =
+
+            "❌ This iPhone browser does not provide SpeechRecognition. Try the latest Safari or Chrome on iPhone.";
+
+
+        return false;
+
+    }
+
+
+    recognition =
+
+        new SpeechRecognitionAPI();
+
+
+    recognition.lang = document.getElementById("voiceLanguage")?.value || "en-NG";
+
+
+    recognition.continuous = false;
+
+
+    recognition.interimResults = false;
+
+
+    recognition.maxAlternatives = 1;
+
+
+    // =================================================
+    // START
+    // =================================================
+
+    recognition.onstart = function() {
+
+
+        recognitionRunning = true;
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "🎤 Listening Boss... Speak now.";
+
+
+        document.getElementById(
+
+            "browserStatus"
+
+        ).innerHTML =
+
+            "🟢 Microphone is listening.";
+
+    };
+
+
+    // =================================================
+    // RESULT
+    // =================================================
+
+    recognition.onresult =
+
+    function(event) {
+
+
+        recognitionRunning = false;
+
+
+        let transcript = "";
+
+
+        for (
+
+            let i = event.resultIndex;
+
+            i < event.results.length;
+
+            i++
+
+        ) {
+
+
+            if (
+
+                event.results[i].isFinal
+
+            ) {
+
+                transcript +=
+
+                    event.results[i][0]
+
+                    .transcript;
+
+            }
+
+        }
+
+
+        transcript =
+
+            transcript
+
+            .toLowerCase()
+
+            .trim();
+
+
+        console.log(
+
+            "VOICE RESULT:",
+
+            transcript
+
+        );
+
+
+        document.getElementById(
+
+            "transcript"
+
+        ).innerHTML =
+
+            "You said: " +
+
+            transcript;
+
+
+        if (!transcript) {
+
+
+            speak(
+
+                "Sorry Boss. I could not hear the command."
+
+            );
+
+
+            return;
+
+        }
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "🧠 Processing...";
+
+
+        processVoiceCommand(
+
+            transcript
+
+        );
+
+    };
+
+
+    // =================================================
+    // ERROR
+    // =================================================
+
+    recognition.onerror =
+
+    function(event) {
+
+
+        recognitionRunning = false;
+
+
+        console.log(
+
+            "VOICE ERROR:",
+
+            event.error
+
+        );
+
+
+        let message = "";
+
+
+        switch (
+
+            event.error
+
+        ) {
+
+
+            case "not-allowed":
+
+                message =
+
+                    "Microphone permission is blocked. Please allow microphone access for this website in your iPhone settings.";
+
+                break;
+
+
+            case "service-not-allowed":
+
+                message =
+
+                    "The iPhone speech recognition service is not available in this browser.";
+
+                break;
+
+
+            case "no-speech":
+
+                message =
+
+                    "I did not hear you Boss. Please press the button and speak clearly.";
+
+                break;
+
+
+            case "audio-capture":
+
+                message =
+
+                    "I cannot access your iPhone microphone.";
+
+                break;
+
+
+            case "network":
+
+                message =
+
+                    "Speech recognition needs an internet connection on this browser. Check your internet connection.";
+
+                break;
+
+
+            case "aborted":
+
+                message =
+
+                    "Voice recognition was stopped.";
+
+                break;
+
+
+            default:
+
+                message =
+
+                    "Voice recognition error: " +
+
+                    event.error;
+
+                break;
+
+        }
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "❌ " +
+
+            message;
+
+
+        // Do not speak an error over the microphone
+
+        document.getElementById(
+
+            "response"
+
+        ).innerHTML =
+
+            "RAMATECH HOME AI: " +
+
+            message;
+
+    };
+
+
+    // =================================================
+    // END
+    // =================================================
+
+    recognition.onend = function() {
+
+
+        recognitionRunning = false;
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "Ready. Press SPEAK TO RAMADAN.";
+
+    };
+
+
+    // =================================================
+    // NO MATCH
+    // =================================================
+
+    recognition.onnomatch = function() {
+
+
+        recognitionRunning = false;
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "❌ I could not understand the speech.";
+
+
+        speak(
+
+            "Sorry Boss. I could not understand what you said."
+
+        );
+
+    };
+
+
+    return true;
+
+}
+
+
+// =====================================================
+// START VOICE
+// =====================================================
+
+function startVoice() {
+
+
+    // Stop phone speech
+
+    if (
+
+        "speechSynthesis" in window
+
+    ) {
+
+        window.speechSynthesis.cancel();
+
+    }
+
+
+    // Create recognition if necessary
+
+    if (!recognition) {
+
+
+        if (!setupRecognition()) {
+
+
+            // Give a useful response
+
+            document.getElementById(
+
+                "response"
+
+            ).innerHTML =
+
+                "RAMATECH HOME AI: " +
+
+                "Voice recognition is not available in this browser.";
+
+            return;
+
+        }
+
+    }
+
+
+    if (recognitionRunning) {
+
+        return;
+
+    }
+
+
+    document.getElementById(
+
+        "voiceStatus"
+
+    ).innerHTML =
+
+        "🎤 Opening microphone...";
+
+
+    try {
+
+
+        recognition.start();
+
+
+    }
+
+    catch(error) {
+
+
+        console.log(
+
+            "START ERROR:",
+
+            error
+
+        );
+
+
+        recognitionRunning = false;
+
+
+        document.getElementById(
+
+            "voiceStatus"
+
+        ).innerHTML =
+
+            "❌ Could not start microphone. Try again.";
+
+    }
+
+}
+
+
+// =====================================================
+// STOP VOICE
+// =====================================================
+
+function stopVoice() {
+
+
+    if (
+
+        recognition &&
+
+        recognitionRunning
+
+    ) {
+
+
+        try {
+
+            recognition.stop();
+
+        }
+
+        catch(error) {
+
+            console.log(error);
+
+        }
+
+    }
+
+
+    if (
+
+        "speechSynthesis" in window
+
+    ) {
+
+        window.speechSynthesis.cancel();
+
+    }
+
+
+    recognitionRunning = false;
+
+
+    document.getElementById(
+
+        "voiceStatus"
+
+    ).innerHTML =
+
+        "Voice stopped. Ready Boss.";
+
+}
+
+
+// =====================================================
+// CLEAN COMMAND
+// =====================================================
+
+function cleanCommand(command) {
+
+
+    command =
+
+        command
+
+        .toLowerCase()
+
+        .trim();
+
+
+    // Remove punctuation
+
+    command =
+
+        command.replace(
+
+            /[.,!?;:]/g,
+
+            " "
+
+        );
+
+
+    // Common RAMADAN variations
+
+    command =
+
+        command.replace(
+
+            /\bhey ramadan\b/g,
+
+            " "
+
+        );
+
+
+    command =
+
+        command.replace(
+
+            /\bokay ramadan\b/g,
+
+            " "
+
+        );
+
+
+    command =
+
+        command.replace(
+
+            /\bok ramadan\b/g,
+
+            " "
+
+        );
+
+
+    command =
+
+        command.replace(
+
+            /\bramadan\b/g,
+
+            " "
+
+        );
+
+
+    // Remove extra spaces
+
+    command =
+
+        command
+
+        .replace(/\s+/g, " ")
+
+        .trim();
+
+
+    return command;
+
+}
+
+
+// =====================================================
+// PROCESS VOICE COMMAND
+// =====================================================
+
+function displayOnESP32(message) {
+    // Additive: forward the command text to the ESP32 LCD via the existing cloud socket.
+    if (!cloudConnected || !cloudSocket || cloudSocket.readyState !== WebSocket.OPEN) return;
+    try {
+        cloudSocket.send(JSON.stringify({
+            type: "display",
+            deviceId: "RAMATECH_HOME_01",
+            line1: "VOICE COMMAND:",
+            line2: String(message || "").slice(0, 16)
+        }));
+    } catch (e) { console.log("LCD display message could not be sent", e); }
+}
+
+function speakDateTime(which) {
+    const now = new Date();
+    const dateText = new Intl.DateTimeFormat("en-NG", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric"
+    }).format(now);
+    const timeText = new Intl.DateTimeFormat("en-NG", {
+        hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos"
+    }).format(now);
+    let reply;
+    if (which === "date") reply = "Today is " + dateText + ".";
+    else if (which === "time") reply = "The current time in Nigeria is " + timeText + ".";
+    else reply = "Today is " + dateText + ". The current time in Nigeria is " + timeText + ".";
+    speak(reply);
+    displayOnESP32(which === "date" ? dateText : which === "time" ? timeText : dateText + " " + timeText);
+}
+
+function normalizeNigerianCommand(input) {
+    let t = String(input || "").toLowerCase();
+    const replacements = [
+      [/\b(ramadan)\b/g, " "],
+      [/\b(tan|tan ina|tan imọlẹ)\b/g, " turn on light "],
+      [/\b(pa ina|pa imọlẹ)\b/g, " turn off light "],
+      [/\b(kunna fitila|kunna haske)\b/g, " turn on light "],
+      [/\b(kashe fitila|kashe haske)\b/g, " turn off light "],
+      [/\b(gbanye ọkụ)\b/g, " turn on light "],
+      [/\b(gbanyụọ ọkụ)\b/g, " turn off light "],
+      [/\b(kunna fanka)\b/g, " turn on fan "],
+      [/\b(kashe fanka)\b/g, " turn off fan "],
+      [/\b(gbanye fan)\b/g, " turn on fan "],
+      [/\b(gbanyụọ fan)\b/g, " turn off fan "],
+      [/\b(tan fan)\b/g, " turn on fan "],
+      [/\b(pa fan)\b/g, " turn off fan "],
+      [/\b(gbogbo nkan pa|kashe komai|gbanyụọ ihe niile)\b/g, " turn everything off " ]
+    ];
+    for (const [pattern, replacement] of replacements) t = t.replace(pattern, replacement);
+    return t.trim();
+}
+
+function processVoiceCommand(
+
+    originalCommand
+
+) {
+
+
+    let command =
+
+        cleanCommand(
+
+            normalizeNigerianCommand(originalCommand)
+
+        );
+
+    // Additive date/time commands and LCD feedback; all existing commands remain below.
+    displayOnESP32(originalCommand);
+    const dateTimeQuery = command.toLowerCase();
+    if ((dateTimeQuery.includes("date") && dateTimeQuery.includes("time")) ||
+        dateTimeQuery.includes("what is the date and time") ||
+        dateTimeQuery.includes("current date and time")) {
+        speakDateTime("both");
+        return;
+    }
+    if ((dateTimeQuery.includes("today") && (dateTimeQuery.includes("date") || dateTimeQuery.includes("day"))) ||
+        dateTimeQuery.includes("what is today's date") || dateTimeQuery.includes("what is todays date") ||
+        dateTimeQuery === "date") {
+        speakDateTime("date");
+        return;
+    }
+    if (dateTimeQuery.includes("what time") || dateTimeQuery.includes("current time") ||
+        dateTimeQuery.includes("tell me the time") || dateTimeQuery === "time") {
+        speakDateTime("time");
+        return;
+    }
+
+
+    console.log(
+
+        "Original command:",
+
+        originalCommand
+
+    );
+
+
+    console.log(
+
+        "Clean command:",
+
+        command
+
+    );
+
+
+    // =================================================
+    // JUST RAMADAN
+    // =================================================
+
+    if (
+
+        command === ""
+
+    ) {
+
+
+        speak(
+
+            "Yes Boss. How can I assist you?"
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // HOW ARE YOU
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "how are you"
+
+        ) ||
+
+        command.includes(
+
+            "how are u"
+
+        ) ||
+
+        command.includes(
+
+            "how r you"
+
+        ) ||
+
+        command.includes(
+
+            "how r u"
+
+        )
+
+    ) {
+
+
+        speak(
+
+            "I am doing fine Boss. Thank you for asking. I am ready to control your smart home for you."
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // NAME
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "what is your name"
+
+        ) ||
+
+        command.includes(
+
+            "whats your name"
+
+        ) ||
+
+        command === "your name"
+
+    ) {
+
+
+        speak(
+
+            "My name is RAMADAN. I am your RAMATECH HOME AI smart home assistant."
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // WHO ARE YOU
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "who are you"
+
+        ) ||
+
+        command.includes(
+
+            "introduce yourself"
+
+        ) ||
+
+        command.includes(
+
+            "tell me about yourself"
+
+        )
+
+    ) {
+
+
+        speak(
+
+            "Hi Boss. My name is RAMADAN. I am your RAMATECH HOME AI smart home assistant. I was designed, programmed and developed by Ramatechcode Lab to make life very easy for you."
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // WHO DEVELOPED YOU
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "who developed you"
+
+        ) ||
+
+        command.includes(
+
+            "who made you"
+
+        ) ||
+
+        command.includes(
+
+            "who programmed you"
+
+        ) ||
+
+        command.includes(
+
+            "who created you"
+
+        ) ||
+
+        command.includes(
+
+            "who designed you"
+
+        )
+
+    ) {
+
+
+        speak(
+
+            "I was designed, programmed and developed by Ramatechcode Lab."
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // APPLIANCES
+    // =================================================
+
+    if (
+
+        (
+
+            command.includes(
+
+                "what appliances"
+
+            ) ||
+
+            command.includes(
+
+                "which appliances"
+
+            )
+
+        )
+
+        &&
+
+        (
+
+            command.includes(
+
+                "power"
+
+            ) ||
+
+            command.includes(
+
+                "control"
+
+            ) ||
+
+            command.includes(
+
+                "currently"
+
+            )
+
+        )
+
+    ) {
+
+
+        speak(
+
+            "Alright Boss. I can currently power and control four appliances: the light, the rope light, the fan, and the television."
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // WHAT CAN YOU CONTROL
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "what can you control"
+
+        ) ||
+
+        command.includes(
+
+            "what can you power"
+
+        ) ||
+
+        command.includes(
+
+            "what appliances can you power"
+
+        ) ||
+
+        command.includes(
+
+            "what devices can you control"
+
+        )
+
+    ) {
+
+
+        speak(
+
+            "Alright Boss. I can currently control the light, rope light, fan and television."
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // HELLO
+    // =================================================
+
+    if (
+
+        command === "hello" ||
+
+        command === "hi" ||
+
+        command === "hey"
+
+    ) {
+
+
+        speak(
+
+            "Hello Boss. I am ready to assist you."
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // THANK YOU
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "thank you"
+
+        ) ||
+
+        command.includes(
+
+            "thanks"
+
+        )
+
+    ) {
+
+
+        speak(
+
+            "You are welcome Boss. I am always ready to assist you."
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // ALL ON
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "all on"
+
+        ) ||
+
+        command.includes(
+
+            "everything on"
+
+        ) ||
+
+        command.includes(
+
+            "all devices on"
+
+        ) ||
+
+        command.includes(
+
+            "turn everything on"
+
+        ) ||
+
+        command.includes(
+
+            "turn all on"
+
+        )
+
+    ) {
+
+
+        allControl("on")
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. All devices are now on."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn on all the devices."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // ALL OFF
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "all off"
+
+        ) ||
+
+        command.includes(
+
+            "everything off"
+
+        ) ||
+
+        command.includes(
+
+            "all devices off"
+
+        ) ||
+
+        command.includes(
+
+            "turn everything off"
+
+        ) ||
+
+        command.includes(
+
+            "turn all off"
+
+        )
+
+    ) {
+
+
+        allControl("off")
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. All devices are now off."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn off all the devices."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // ROPE LIGHT ON
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "rope"
+
+        )
+
+        &&
+
+        (
+
+            command.includes("on") ||
+
+            command.includes("turn on") ||
+
+            command.includes("switch on")
+
+        )
+
+    ) {
+
+
+        control(
+
+            "rope",
+
+            "on"
+
+        )
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. Rope light turned on."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn on the rope light."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // ROPE LIGHT OFF
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "rope"
+
+        )
+
+        &&
+
+        (
+
+            command.includes("off") ||
+
+            command.includes("turn off") ||
+
+            command.includes("switch off")
+
+        )
+
+    ) {
+
+
+        control(
+
+            "rope",
+
+            "off"
+
+        )
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. Rope light turned off."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn off the rope light."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // LIGHT ON
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "light"
+
+        )
+
+        &&
+
+        !command.includes(
+
+            "rope"
+
+        )
+
+        &&
+
+        (
+
+            command.includes("on") ||
+
+            command.includes("turn on") ||
+
+            command.includes("switch on")
+
+        )
+
+    ) {
+
+
+        control(
+
+            "light",
+
+            "on"
+
+        )
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. Light turned on."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn on the light."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // LIGHT OFF
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "light"
+
+        )
+
+        &&
+
+        !command.includes(
+
+            "rope"
+
+        )
+
+        &&
+
+        (
+
+            command.includes("off") ||
+
+            command.includes("turn off") ||
+
+            command.includes("switch off")
+
+        )
+
+    ) {
+
+
+        control(
+
+            "light",
+
+            "off"
+
+        )
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. Light turned off."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn off the light."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // FAN ON
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "fan"
+
+        )
+
+        &&
+
+        (
+
+            command.includes("on") ||
+
+            command.includes("turn on") ||
+
+            command.includes("switch on")
+
+        )
+
+    ) {
+
+
+        control(
+
+            "fan",
+
+            "on"
+
+        )
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. Fan turned on."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn on the fan."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // FAN OFF
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "fan"
+
+        )
+
+        &&
+
+        (
+
+            command.includes("off") ||
+
+            command.includes("turn off") ||
+
+            command.includes("switch off")
+
+        )
+
+    ) {
+
+
+        control(
+
+            "fan",
+
+            "off"
+
+        )
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. Fan turned off."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn off the fan."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // TV ON
+    // =================================================
+
+    if (
+
+        (
+
+            command.includes("tv") ||
+
+            command.includes("television")
+
+        )
+
+        &&
+
+        (
+
+            command.includes("on") ||
+
+            command.includes("turn on") ||
+
+            command.includes("switch on")
+
+        )
+
+    ) {
+
+
+        control(
+
+            "tv",
+
+            "on"
+
+        )
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. Television turned on."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn on the television."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // TV OFF
+    // =================================================
+
+    if (
+
+        (
+
+            command.includes("tv") ||
+
+            command.includes("television")
+
+        )
+
+        &&
+
+        (
+
+            command.includes("off") ||
+
+            command.includes("turn off") ||
+
+            command.includes("switch off")
+
+        )
+
+    ) {
+
+
+        control(
+
+            "tv",
+
+            "off"
+
+        )
+
+        .then(
+
+            function() {
+
+                speak(
+
+                    "Alright Boss. Television turned off."
+
+                );
+
+            }
+
+        )
+
+        .catch(
+
+            function() {
+
+                speak(
+
+                    "Sorry Boss. I could not turn off the television."
+
+                );
+
+            }
+
+        );
+
+
+        return;
+
+    }
+
+
+    // =================================================
+    // STATUS
+    // =================================================
+
+    if (
+
+        command.includes(
+
+            "status"
+
+        ) ||
+
+        command.includes(
+
+            "home status"
+
+        ) ||
+
+        command.includes(
+
+            "how is the house"
+
+        ) ||
+
+        command.includes(
+
+            "what is on"
+
+        ) ||
+
+        command.includes(
+
+            "what's on"
+
+        )
+
+    ) {
+
+
+        getStatusVoice();
+
+        return;
+
+    }
+
+
+    // =================================================
+    // UNKNOWN
+    // =================================================
+
+    speak(
+
+        "Sorry Boss. I heard you, but I do not understand that command yet."
+
+    );
+
+}
+
+
+// =====================================================
+// STATUS VOICE
+// =====================================================
+
+function getStatusVoice() {
+
+
+    fetch("/status")
+
+    .then(
+
+        response => {
+
+            if (!response.ok) {
+
+                throw new Error(
+
+                    "Status unavailable"
+
+                );
+
+            }
+
+            return response.json();
+
+        }
+
+    )
+
+    .then(
+
+        data => {
+
+
+            let message =
+
+                "Alright Boss. ";
+
+
+            message +=
+
+                "The light is " +
+
+                (
+
+                    data.light
+
+                    ? "on"
+
+                    : "off"
+
+                ) +
+
+                ". ";
+
+
+            message +=
+
+                "The rope light is " +
+
+                (
+
+                    data.rope
+
+                    ? "on"
+
+                    : "off"
+
+                ) +
+
+                ". ";
+
+
+            message +=
+
+                "The fan is " +
+
+                (
+
+                    data.fan
+
+                    ? "on"
+
+                    : "off"
+
+                ) +
+
+                ". ";
+
+
+            message +=
+
+                "The television is " +
+
+                (
+
+                    data.tv
+
+                    ? "on"
+
+                    : "off"
+
+                ) +
+
+                ".";
+
+
+            speak(message);
+
+        }
+
+    )
+
+    .catch(
+
+        error => {
+
+            console.log(error);
+
+
+            speak(
+
+                "Sorry Boss. I cannot get the current home status."
+
+            );
+
+        }
+
+    );
+
+}
+
+
+// =====================================================
+// FAST TYPED COMMAND + TETFUND PRESENTATION
+// =====================================================
+function sendTypedCommand() {
+  const field = document.getElementById("typedCommand");
+  const text = (field?.value || "").trim();
+  if (!text) { speak("Please type a command, Boss."); return; }
+  if (!cloudConnected) {
+    speak("Please connect to RAMATECH Cloud first.");
+    return;
+  }
+  if (field) field.value = "";
+  document.getElementById("transcript").textContent = "Typed command: " + text;
+  processVoiceCommand(text);
+}
+
+const TETFUND_TEXT = {
+  en: {
+    greeting: "Good day, distinguished TETFund representatives, university leaders, researchers, educators, innovators and invited guests. Welcome to the RAMATECH HOME AI demonstration. This project represents the creativity and technical potential of Nigerian developers. Thank you for supporting education, research, innovation and the development of practical technology in Nigeria.",
+    innovation: "RAMATECH HOME AI is an ESP32-powered smart home demonstration. It combines embedded electronics, four-channel appliance control, a live mobile dashboard, local Wi-Fi and secure cloud connectivity, voice interaction and text-to-speech. It is designed to show how practical engineering and software can work together to solve everyday problems and inspire further research.",
+    impact: "To every student and young innovator here: do not wait for technology to come only from somewhere else. Learn, experiment, build, test and improve. Nigeria has talented minds capable of creating useful solutions for our communities. With access to education, research support and opportunities, today's learners can become tomorrow's inventors, founders and technology leaders. Thank you."
+  },
+  yo: {
+    greeting: "Ẹ káàbọ̀, àwọn aṣojú TETFund, àwọn olórí yunifásítì, àwọn olùṣèwádìí, olùkọ́, àwọn olùdásílẹ̀ àti gbogbo àlejò pàtàkì. Ẹ kú àbọ̀ sí ìfihàn RAMATECH HOME AI. Ètò yìí ń fi ọgbọ́n àti agbára àwọn olùdàgbàsókè ìmọ̀ ẹ̀rọ ní Nàìjíríà hàn. Ẹ ṣeun fún àtìlẹ́yìn yín fún ẹ̀kọ́, ìwádìí àti ìmọ̀ tuntun.",
+    innovation: "RAMATECH HOME AI jẹ́ àfihàn ilé ọlọ́gbọ́n tí ESP32 ń ṣàkóso. Ó so ẹ̀rọ itanna pọ̀ mọ́ ìṣàkóso ohun èlò mẹ́rin, dashboard fóònù, Wi-Fi agbègbè, ìsopọ̀ cloud, ìbánisọ̀rọ̀ ohùn àti ìdáhùn ohùn. Ó ń fi bí ìmọ̀ ẹ̀rọ àti sọ́fítíwè ṣe lè ṣiṣẹ́ pọ̀ láti yanjú ìṣòro ojoojúmọ́ hàn.",
+    impact: "Sí gbogbo akẹ́kọ̀ọ́ àti ọ̀dọ́ tó ní èrò tuntun: ẹ má ṣe dúró de kí ẹlòmíràn ṣẹ̀dá gbogbo ìmọ̀ ẹ̀rọ fún wa. Ẹ kọ́ ẹ̀kọ́, ẹ ṣe àdánwò, ẹ kọ́ ohun tuntun, ẹ sì tún un ṣe dáadáa. Nàìjíríà ní àwọn ènìyàn tó ní ọgbọ́n láti dá ojútùú tó wúlò sílẹ̀ fún àwùjọ wa. Ẹ ṣeun."
+  },
+  ha: {
+    greeting: "Barkan ku da zuwa, wakilan TETFund, shugabannin jami'o'i, masu bincike, malamai, masu kirkire-kirkire da manyan baki. Muna maraba da ku zuwa gabatarwar RAMATECH HOME AI. Wannan aiki yana nuna basira da damar masu kirkirar fasaha a Najeriya. Mun gode da goyon bayanku ga ilimi, bincike da kirkire-kirkire.",
+    innovation: "RAMATECH HOME AI wani tsarin gida mai wayo ne wanda ESP32 ke sarrafawa. Ya hada na'urorin lantarki, sarrafa kayan aiki guda hudu, dashboard na waya, Wi-Fi na kusa, hadin cloud, umarnin murya da amsar murya. Yana nuna yadda injiniya da manhaja za su hada kai wajen magance matsalolin yau da kullum.",
+    impact: "Ga dalibai da matasa masu kirkire-kirkire: kada ku jira wasu su kawo mana dukkan fasaha. Ku koyi ilimi, ku yi gwaji, ku gina sabbin abubuwa, ku gwada su, sannan ku inganta su. Najeriya tana da hazikan mutane da za su iya samar da mafita mai amfani ga al'ummarmu. Da ilimi, bincike da dama, masu koyo na yau za su zama shugabannin fasaha na gobe. Mun gode."
+  },
+  ig: {
+    greeting: "Ndewo, ndị nnọchi anya TETFund, ndị isi mahadum, ndị na-eme nchọpụta, ndị nkuzi, ndị na-emepụta ihe ọhụrụ na ndị ọbịa pụrụ iche. Unu abịala nke ọma na ngosi RAMATECH HOME AI. Ọrụ a na-egosi ikike na amamihe ndị mmepe teknụzụ Naịjirịa. Daalụ maka nkwado unu nye agụmakwụkwọ, nyocha na ihe ọhụrụ.",
+    innovation: "RAMATECH HOME AI bụ ihe ngosi ụlọ nwere ọgụgụ isi nke ESP32 na-achịkwa. Ọ na-ejikọta ngwa eletrọnịkị, njikwa ngwaọrụ anọ, dashboard ekwentị, Wi-Fi mpaghara, njikọ cloud, iwu olu na nzaghachi olu. Ọ na-egosi otu injinia na sọftụwia nwere ike isi rụọkọ ọrụ iji dozie nsogbu kwa ụbọchị.",
+    impact: "Ndị mmụta na ndị ntorobịa nwere echiche ọhụrụ: unu echekwala ka teknụzụ si mba ọzọ bịa mgbe niile. Mụtanụ ihe, nwalee echiche, wuo ihe ọhụrụ ma melite ya. Naịjirịa nwere ọtụtụ ndị nwere amamihe nwere ike imepụta ihe ga-abara obodo anyị uru. Site na agụmakwụkwọ, nyocha na ohere, ndị mmụta taa nwere ike ịbụ ndị ndu teknụzụ echi. Daalụ."
+  }
+};
+function presentationLang(){return (document.getElementById("presentationLanguage")?.value || "en-NG").split("-")[0];}
+function speakPresentation(kind){
+  const lang=presentationLang();
+  const text=(TETFUND_TEXT[lang]||TETFUND_TEXT.en)[kind];
+  document.getElementById("presentationStatus").textContent="RAMADAN is presenting in "+({en:"English",yo:"Yoruba",ha:"Hausa",ig:"Igbo"}[lang])+".";
+  const voiceSelect=document.getElementById("voiceLanguage");
+  if(voiceSelect) voiceSelect.value=({en:"en-NG",yo:"yo-NG",ha:"ha-NG",ig:"ig-NG"}[lang]);
+  speak(text);
+}
+function tetfundGreeting(){speakPresentation("greeting");}
+function tetfundInnovation(){speakPresentation("innovation");}
+function tetfundImpact(){speakPresentation("impact");}
+function togglePresentation(){
+  document.body.classList.toggle("presentation-mode");
+  const el=document.getElementById("tetfundPanel");
+  if(document.body.classList.contains("presentation-mode")){
+    el.scrollIntoView({behavior:"smooth",block:"start"});
+    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+  } else if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+}
+
+// =====================================================
+// BROWSER SUPPORT STATUS
+// =====================================================
+
+function checkBrowserSupport() {
+
+
+    if (SpeechRecognitionAPI) {
+
+
+        document.getElementById(
+
+            "browserStatus"
+
+        ).innerHTML =
+
+            "🟢 Voice recognition is available. Select a language and tap SPEAK TO RAMADAN.";
+
+    }
+
+    else {
+
+
+        document.getElementById(
+
+            "browserStatus"
+
+        ).innerHTML =
+
+            "🔴 Speech recognition is not available in this browser.";
+
+    }
+
+
+    if (
+
+        "speechSynthesis" in window
+
+    ) {
+
+
+        console.log(
+
+            "Speech synthesis available"
+
+        );
+
+    }
+
+    else {
+
+
+        console.log(
+
+            "Speech synthesis unavailable"
+
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// INITIALIZATION
+// =====================================================
+
+checkBrowserSupport();
+const typedField=document.getElementById("typedCommand");
+if(typedField) typedField.addEventListener("keydown",e=>{if(e.key==="Enter")sendTypedCommand();});
+
+if (cloudAccessCode) connectCloud();
+
+updateStatus();
+
+
+setInterval(
+
+    updateStatus,
+
+    2000
+
+);
+
+
+</script>
+
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try {
+      await navigator.serviceWorker.register("/sw.js");
+      console.log("RAMATECH HOME AI PWA is ready.");
+    } catch (error) {
+      console.error("Service worker registration failed:", error);
+    }
+  });
+}
+</script>
+
+</body>
+
+<!-- RAMATECH HOME AI Android App Download -->
+<section id="android-download" style="
+    margin: 30px auto;
+    padding: 25px;
+    max-width: 650px;
+    text-align: center;
+    background: #0f172a;
+    color: #ffffff;
+    border: 1px solid #38bdf8;
+    border-radius: 18px;
+    font-family: Arial, sans-serif;
+">
+    <h2 style="color: #38bdf8;">RAMATECH HOME AI Android App</h2>
+
+    <p>
+        Download the RAMATECH HOME AI Android application
+        and access your smart home dashboard from your phone.
+    </p>
+
+    <a href="/downloads/ramatech-home-ai.apk"
+       download="ramatech-home-ai.apk"
+       style="
+           display: inline-block;
+           padding: 15px 24px;
+           background: #38bdf8;
+           color: #0f172a;
+           font-weight: bold;
+           text-decoration: none;
+           border-radius: 10px;
+       ">
+        Download Android App (APK)
+    </a>
+
+    <p style="font-size: 13px; margin-top: 15px; color: #cbd5e1;">
+        After downloading, open the APK on your Android phone
+        and follow the installation instructions.
+    </p>
+</section>
+
+</html>

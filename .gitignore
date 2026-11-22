@@ -1,0 +1,26 @@
+
+# Python environments
+.venv/
+.venv-tts/
+tts_env/
+venv/
+__pycache__/
+*.py[cod]
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Databases and private data
+*.db
+*.sqlite
+*.sqlite3
+
+# Audio test files
+*.wav
+
+# Logs and temporary files
+*.log
+.DS_Store
+Thumbs.db
