@@ -1,4 +1,4 @@
-import os, re, json, time, uuid, sqlite3, logging, tempfile, hashlib
+﻿import os, re, json, time, uuid, sqlite3, logging, tempfile, hashlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from urllib.parse import urlencode
@@ -9,13 +9,14 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, Response, RedirectResponse, JSONResponse
 from pydantic import BaseModel
+from difflib import SequenceMatcher
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("ramadan-home-ai")
 
 APP_NAME = os.getenv("ASSISTANT_NAME", "RAMADAN")
-ESP32_URL = os.getenv("ESP32_URL", "http://192.168.4.1").rstrip("/")
+ESP32_URL = os.getenv("ESP32_URL", "http://172.20.10.2").rstrip("/")
 ESP32_API_TOKEN = os.getenv("ESP32_API_TOKEN", "")
 TTS_SERVICE_URL = os.getenv("TTS_SERVICE_URL", "http://127.0.0.1:8766").rstrip("/")
 FLW_SECRET_KEY = os.getenv("FLW_SECRET_KEY", "")
@@ -64,10 +65,11 @@ def now_lagos():
     return datetime.now(TZ)
 
 def normalize(s: str) -> str:
+    """Normalize accents/punctuation without discarding African-language letters."""
     import unicodedata
     s = unicodedata.normalize("NFKD", (s or "").lower())
     s = "".join(c for c in s if not unicodedata.combining(c))
-    s = re.sub(r"[^a-z0-9\s]", " ", s)
+    s = re.sub(r"[^\w\s]", " ", s, flags=re.UNICODE)
     return re.sub(r"\s+", " ", s).strip()
 
 def esp_get(path, params=None, timeout=5):
@@ -101,25 +103,87 @@ LANGS = {
 
 # Phrase matching is deliberately broad and forgiving for a live demonstration.
 COMMANDS = {
-    "light_on": ["turn on light", "switch on light", "light on", "tan ina", "tan ina naa", "tan ina si", "kunna haske", "kunna fitila", "gbana ina", "muo oku", "gbanwuo oku"],
-    "light_off": ["turn off light", "switch off light", "light off", "pa ina", "pa ina naa", "kashe haske", "kashe fitila", "pa oku", "gbanyuo oku"],
-    "rope_on": ["turn on rope light", "rope light on", "tan ina okun", "kunna igiya", "gbana ori"],
-    "rope_off": ["turn off rope light", "rope light off", "pa ina okun", "kashe igiya", "gbanyuo ori"],
-    "fan_on": ["turn on fan", "switch on fan", "fan on", "tan fan", "tan fanka", "kunna fanka", "gbana fan", "gbanye fan"],
-    "fan_off": ["turn off fan", "switch off fan", "fan off", "pa fan", "pa fanka", "kashe fanka", "gbanyuo fan"],
-    "tv_on": ["turn on tv", "switch on tv", "tv on", "tan tv", "kunna talabijin", "gbana tv", "gbanye igwe onyonyo"],
-    "tv_off": ["turn off tv", "switch off tv", "tv off", "pa tv", "kashe talabijin", "gbanyuo tv", "gbanyụọ tv"],
-    "all_on": ["turn on everything", "turn on all", "all on", "tan gbogbo nkan", "tan gbogbo", "kunna komai", "kunna dukkan na'urori", "gbanye ihe niile"],
-    "all_off": ["turn off everything", "turn off all", "all off", "pa gbogbo nkan", "kashe komai", "kashe dukkan na'urori", "gbanyuo ihe niile"],
-    "status": ["status", "check status", "device status", "what is on", "halin na'urori", "duba halin", "ipo awon ẹrọ", "ọnọdụ ngwaọrụ", "kedu ihe di na"],
-    "time": ["what time is it", "tell me the time", "time now", "ago melo ni", "menene lokaci", "kedu oge"],
-    "date": ["what is the date", "today date", "what day is today", "ojo wo ni", "wace rana ce", "kedu ubochi"],
-    "weather": ["weather", "how is the weather", "weather today", "oju ojo", "yanayi", "ihu igwe"],
-    "where": ["where are you", "where are u", "where are you now", "nibo lo wa", "ina kake", "ina kike", "ebee ka i no", "ebee ka ịnọ"],
-    "greet": ["greet the audience", "greet our audience", "greet tetfund", "greet the high table", "welcome the audience", "ki gbogbo eniyan", "gaishe jama a", "kele ndi obia", "kele ndi niile"],
-    "who": ["who are you", "what is your name", "introduce yourself", "ta ni e", "waye kai", "onye ka i bu"],
-    "creator": ["who created you", "who made you", "your creator", "ta ni o da e", "waye ya halicce ka", "onye kere gi"],
-    "help": ["help", "show commands", "list commands", "what can you do", "commands", "iranlowo", "taimako", "enyemaka"]
+    "light_on": [
+        "turn on the light", "turn on light", "switch on light", "light on",
+        "tan ina", "tan fitila", "kunna haske", "kunna fitila", "gbanye oku", "gbanye ọkụ"
+    ],
+    "light_off": [
+        "turn off the light", "turn off light", "switch off light", "light off",
+        "pa ina", "pa fitila", "kashe haske", "kashe fitila", "gbanyuo oku", "gbanyụọ ọkụ"
+    ],
+    "rope_on": [
+        "turn on the rope light", "turn on rope light", "rope light on",
+        "tan ina okun", "tan fitila okun", "kunna hasken igiya", "kunna igiya",
+        "gbanye oku eriri", "gbanye ọkụ eriri"
+    ],
+    "rope_off": [
+        "turn off the rope light", "turn off rope light", "rope light off",
+        "pa ina okun", "pa fitila okun", "kashe hasken igiya", "kashe igiya",
+        "gbanyuo oku eriri", "gbanyụọ ọkụ eriri"
+    ],
+    "fan_on": [
+        "turn on the fan", "turn on fan", "switch on fan", "fan on",
+        "tan fan", "kunna fanka", "kunna fan", "gbanye fan"
+    ],
+    "fan_off": [
+        "turn off the fan", "turn off fan", "switch off fan", "fan off",
+        "pa fan", "pa fanka", "kashe fanka", "kashe fan", "gbanyuo fan", "gbanyụọ fan"
+    ],
+    "tv_on": [
+        "turn on the tv", "turn on tv", "switch on tv", "tv on",
+        "tan tv", "kunna talabijin", "gbanye tv", "gbanye igwe onyonyo"
+    ],
+    "tv_off": [
+        "turn off the tv", "turn off tv", "switch off tv", "tv off",
+        "pa tv", "kashe talabijin", "gbanyuo tv", "gbanyụọ tv"
+    ],
+    "all_on": [
+        "turn on everything", "turn on all appliances", "turn on all", "all on",
+        "tan gbogbo nkan", "tan gbogbo awon nkan", "kunna komai", "kunna dukkan na'urori",
+        "gbanye ihe niile"
+    ],
+    "all_off": [
+        "turn off everything", "turn off all appliances", "turn off all", "all off",
+        "pa gbogbo nkan", "pa gbogbo awon nkan", "kashe komai", "kashe dukkan na'urori",
+        "gbanyuo ihe niile", "gbanyụọ ihe niile"
+    ],
+    "status": [
+        "status", "check status", "check the status", "device status", "what is on", "home status",
+        "ṣayẹwo ipo awọn ẹrọ", "se ayewo ipo awon ero", "duba yanayin na'urori", "duba halin na'urori",
+        "lelee onodu ngwaọrụ", "lelee ọnọdụ ngwaọrụ"
+    ],
+    "time": [
+        "what time is it", "tell me the time", "time now", "what is the time",
+        "aago melo ni", "ago melo ni", "menene lokaci", "kedu oge", "kedu oge o bu"
+    ],
+    "date": [
+        "what is the date", "what date is it", "today date", "what day is today", "what is today's date",
+        "ojo wo ni oni", "ọjọ wo ni oni", "wace rana ce yau", "wace rana ce a yau",
+        "kedu ubochi taa", "kedu ụbọchị taa"
+    ],
+    "weather": [
+        "weather", "how is the weather", "how is the weather today", "weather today",
+        "oju ojo ri bawo", "oju ojo", "yaya yanayi yake", "yaya yanayi yake yau", "yanayi",
+        "kedu ka ihu igwe di", "kedu ka ihu igwe dị"
+    ],
+    "where": [
+        "where are you", "where are you now", "where are u", "nibo lo wa", "nibo ni o wa",
+        "ina kake", "ina kike", "ina kake yanzu", "ebee ka ino", "ebee ka ịnọ"
+    ],
+    "creator": [
+        "who created you", "who made you", "your creator", "ta ni o da e", "ta ni o da ọ",
+        "waye ya halicce ka", "waye ya halicce ki", "onye kere gi", "onye kere gị"
+    ],
+    "greet": [
+        "greet the audience", "greet our audience", "greet the guests", "welcome the audience",
+        "ki gbogbo eniyan", "ki awon alejo", "ki gbogbo alejo", "gaishe da jama'a", "gaishe da jama a",
+        "gaishe da jama'a", "kele ndi obia", "kelee ndi obia", "kele ndị ọbịa", "kelee ndị ọbịa"
+    ],
+    "help": [
+        "help", "show commands", "show all commands", "list commands", "what can you do", "commands",
+        "fi awon ase han", "fi awọn aṣẹ han", "nuna umarni", "nuna dukkan umarni",
+        "goshi iwu", "gosi iwu niile", "gosi iwu niile"
+    ]
 }
 
 REPLIES = {
@@ -154,26 +218,117 @@ REPLIES = {
 }
 
 def detect_language(text, requested="auto"):
+    requested = (requested or "auto").lower()
     if requested in LANGS:
         return requested
     n = normalize(text)
-    if any(x in n for x in ["nibo", "e ka", "tan ina", "pa ina", "ojo wo", "mo wa"]): return "yo"
-    if any(x in n for x in ["ina kake", "ina kike", "kunna", "kashe", "barkan", "menene"]): return "ha"
-    if any(x in n for x in ["ebee", "gbanye", "gbanyuo", "ekele", "nnọọ", "abum"]): return "ig"
+    if any(x in n for x in ["nibo", "tan ina", "pa ina", "ojo wo", "mo wa", "ta ni o da", "gbogbo nkan"]): return "yo"
+    if any(x in n for x in ["ina kake", "ina kike", "kunna", "kashe", "barkan", "menene", "waye ya halicce"]): return "ha"
+    if any(x in n for x in ["ebee", "gbanye", "gbanyuo", "gbanyua", "kele ndi", "onye kere", "kedu ubochi"]): return "ig"
     return "en"
+
+
+
+
+
+# Common speech-recognition mistakes for information commands.
+
+# Common speech-recognition mistakes for information commands.
+SPEECH_CORRECTIONS = {
+    "grid the audience": "greet the audience",
+    "great the audience": "greet the audience",
+    "green the audience": "greet the audience",
+    "greet audience": "greet the audience",
+    "greet our audience": "greet the audience",
+    "who create you": "who created you",
+    "who created u": "who created you",
+    "show command": "show commands",
+    "show me command": "show commands",
+    "what is the time": "what time is it",
+    "tell me todays date": "what is the date",
+}
+
+FUZZY_INFORMATION_COMMANDS = {
+    "status", "time", "date", "weather",
+    "where", "creator", "greet", "help"
+}
+
+
+def similarity(a, b):
+    a = normalize(a)
+    b = normalize(b)
+
+    if not a or not b:
+        return 0.0
+
+    sequence_score = SequenceMatcher(None, a, b).ratio()
+
+    a_words = set(a.split())
+    b_words = set(b.split())
+
+    if not a_words or not b_words:
+        token_score = 0.0
+    else:
+        token_score = len(a_words & b_words) / len(a_words | b_words)
+
+    return max(sequence_score, token_score)
+
 
 def match_command(text):
     n = normalize(text)
+
+    if not n:
+        return None
+
+    # 1. Apply known speech-recognition corrections.
+    corrected = normalize(SPEECH_CORRECTIONS.get(n, n))
+
+    # 2. Exact matching first.
+    padded = f" {corrected} "
+    exact_matches = []
+
     for command, phrases in COMMANDS.items():
         for phrase in phrases:
             p = normalize(phrase)
-            if p and (p in n or n in p):
-                return command
-    # Simple English appliance fallbacks
-    if "light" in n and ("on" in n or "off" in n): return "light_on" if "on" in n else "light_off"
-    if "fan" in n and ("on" in n or "off" in n): return "fan_on" if "on" in n else "fan_off"
-    if "tv" in n and ("on" in n or "off" in n): return "tv_on" if "on" in n else "tv_off"
+
+            if p and f" {p} " in padded:
+                exact_matches.append((len(p), command))
+
+    if exact_matches:
+        return max(exact_matches, key=lambda item: item[0])[1]
+
+    # 3. Fuzzy matching for information commands only.
+    candidates = []
+
+    for command in FUZZY_INFORMATION_COMMANDS:
+        for phrase in COMMANDS.get(command, []):
+            score = similarity(corrected, phrase)
+            candidates.append((score, command, phrase))
+
+    if not candidates:
+        return None
+
+    # Keep only the best score for each command.
+    best_by_command = {}
+
+    for score, command, phrase in candidates:
+        if command not in best_by_command or score > best_by_command[command][0]:
+            best_by_command[command] = (score, phrase)
+
+    ranked = sorted(
+        [(score, command, phrase)
+         for command, (score, phrase) in best_by_command.items()],
+        reverse=True
+    )
+
+    best_score, best_command, best_phrase = ranked[0]
+    second_score = ranked[1][0] if len(ranked) > 1 else 0.0
+
+    if best_score >= 0.72 and (best_score - second_score) >= 0.08:
+        return best_command
+
     return None
+
 
 def spoken_reply(text, lang):
     return REPLIES.get(lang, REPLIES["en"]).get(text, text)
@@ -184,48 +339,125 @@ def execute_command(text, language="auto"):
     if not cmd:
         return {"ok": False, "language": lang, "reply": {
             "en": "Sorry, I did not understand that command. Say help or show commands.",
-            "yo": "E jowo, mi ko ye aṣẹ naa. E le so iranlowo tabi akojọ aṣẹ.",
-            "ha": "Yi hakuri, ban fahimci umarnin ba. Ku ce taimako ko jerin umarni.",
-            "ig": "Ndo, aghọtaghị m iwu ahụ. Kwuo enyemaka ma ọ bụ iwu niile."
+            "yo": "E jowo, mi ko ye aṣẹ naa. Sọ pé: fi awọn aṣẹ han.",
+            "ha": "Yi hakuri, ban fahimci umarnin ba. Ka ce: nuna umarni.",
+            "ig": "Ndo, aghọtaghị m iwu ahụ. Kwuo: gosi iwu niile."
         }[lang]}
-    if cmd in ("where", "who", "creator", "greet", "help"):
+
+    if cmd in ("where", "creator", "greet", "help"):
         return {"ok": True, "language": lang, "command": cmd, "reply": spoken_reply(cmd, lang)}
+
     if cmd == "time":
         t = now_lagos().strftime("%I:%M %p")
-        return {"ok": True, "language": lang, "command": cmd, "reply": f"The time in Nigeria is {t}." if lang=="en" else (f"Aago Naijiria ni {t}." if lang=="yo" else (f"Lokacin Najeriya yanzu {t} ne." if lang=="ha" else f"Oge dị na Naịjirịa bụ {t}."))}
+        replies = {
+            "en": f"The time in Nigeria is {t}.",
+            "yo": f"Aago ni Naijiria ni {t}.",
+            "ha": f"Lokaci a Najeriya yanzu shi ne {t}.",
+            "ig": f"Oge dị na Naịjirịa ugbu a bụ {t}."
+        }
+        return {"ok": True, "language": lang, "command": cmd, "reply": replies[lang]}
+
     if cmd == "date":
         d = now_lagos().strftime("%A, %d %B %Y")
-        return {"ok": True, "language": lang, "command": cmd, "reply": (f"Today is {d}." if lang=="en" else (f"Yau ita ce {d}." if lang=="ha" else f"Ọjọ oni ni {d}."))}
+        replies = {
+            "en": f"Today is {d}.",
+            "yo": f"Oni ni {d}.",
+            "ha": f"Yau ita ce {d}.",
+            "ig": f"Taa bụ {d}."
+        }
+        return {"ok": True, "language": lang, "command": cmd, "reply": replies[lang]}
+
     if cmd == "weather":
         try:
-            # Sango Ota / Ogun demonstration coordinates; change WEATHER_LAT/LON in .env if needed.
             lat = float(os.getenv("WEATHER_LAT", "6.70")); lon = float(os.getenv("WEATHER_LON", "3.23"))
-            w = requests.get("https://api.open-meteo.com/v1/forecast", params={"latitude":lat,"longitude":lon,"current":"temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m","timezone":"Africa/Lagos"}, timeout=8).json()["current"]
-            reply = f"Current weather is {w['temperature_2m']} degrees Celsius, humidity {w['relative_humidity_2m']} percent, wind speed {w['wind_speed_10m']} kilometres per hour."
-        except Exception: reply = "I could not retrieve the weather right now."
+            w = requests.get("https://api.open-meteo.com/v1/forecast", params={
+                "latitude":lat,"longitude":lon,
+                "current":"temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m",
+                "timezone":"Africa/Lagos"
+            }, timeout=8).json()["current"]
+            temp, humidity, wind = w["temperature_2m"], w["relative_humidity_2m"], w["wind_speed_10m"]
+            replies = {
+                "en": f"The current temperature is {temp} degrees Celsius, humidity is {humidity} percent, and wind speed is {wind} kilometres per hour.",
+                "yo": f"Iwọn otutu lọwọlọwọ jẹ {temp} iwọn Celsius, ọriniinitutu jẹ {humidity} ninu ọgọrun, iyara afẹfẹ jẹ {wind} kilomita ni wakati kan.",
+                "ha": f"Zafin yanzu ya kai {temp} digiri Celsius, danshi ya kai kashi {humidity}, saurin iska kuma {wind} kilomita a awa.",
+                "ig": f"Okpomọkụ ugbu a bụ {temp} digrii Celsius, iru mmiri bụ pasent {humidity}, ọsọ ikuku bụ {wind} kilomita kwa elekere."
+            }
+            reply = replies[lang]
+        except Exception:
+            reply = {
+                "en": "I could not retrieve the weather right now.",
+                "yo": "Mi ko le gba alaye oju ojo bayii.",
+                "ha": "Ba zan iya samun bayanin yanayi a yanzu ba.",
+                "ig": "Enweghị m ike ịnweta ozi ihu igwe ugbu a."
+            }[lang]
         return {"ok": True, "language": lang, "command": cmd, "reply": reply}
-    devices = {"light_on":("light","on"),"light_off":("light","off"),
-               "rope_on":("rope","on"),"rope_off":("rope","off"),
-               "fan_on":("fan","on"),"fan_off":("fan","off"),
-               "tv_on":("tv","on"),"tv_off":("tv","off")}
+
+    device_commands = {
+        "light_on":("light","on"), "light_off":("light","off"),
+        "rope_on":("rope","on"), "rope_off":("rope","off"),
+        "fan_on":("fan","on"), "fan_off":("fan","off"),
+        "tv_on":("tv","on"), "tv_off":("tv","off")
+    }
+    device_names = {
+        "en": {"light":"light", "rope":"rope light", "fan":"fan", "tv":"television"},
+        "yo": {"light":"ina", "rope":"ina okun", "fan":"fan", "tv":"TV"},
+        "ha": {"light":"haske", "rope":"hasken igiya", "fan":"fanka", "tv":"talabijin"},
+        "ig": {"light":"ọkụ", "rope":"ọkụ eriri", "fan":"fan", "tv":"TV"}
+    }
+    action_replies = {
+        "en": {"on":"is now on.", "off":"is now off."},
+        "yo": {"on":"ti tan bayi.", "off":"ti pa bayi."},
+        "ha": {"on":"an kunna yanzu.", "off":"an kashe yanzu."},
+        "ig": {"on":"agbanyeela ugbu a.", "off":"anyụla ugbu a."}
+    }
     try:
-        if cmd in devices:
-            device, state = devices[cmd]
+        if cmd in device_commands:
+            device, state = device_commands[cmd]
             result = esp_get("/control", {"device":device,"state":state})
-            reply = f"{device.replace('_',' ').title()} switched {state}."
-        elif cmd in ("all_on","all_off"):
+            reply = f"{device_names[lang][device]} {action_replies[lang][state]}"
+        elif cmd in ("all_on", "all_off"):
             state = "on" if cmd == "all_on" else "off"
             result = esp_get("/all", {"state":state})
-            reply = f"All appliances switched {state}."
+            replies = {
+                "en": "All appliances are now on." if state == "on" else "All appliances are now off.",
+                "yo": "Gbogbo awọn ẹrọ ti tan bayi." if state == "on" else "Gbogbo awọn ẹrọ ti pa bayi.",
+                "ha": "An kunna dukkan na'urori yanzu." if state == "on" else "An kashe dukkan na'urori yanzu.",
+                "ig": "Agbanyeela ngwa niile ugbu a." if state == "on" else "Anyụla ngwa niile ugbu a."
+            }
+            reply = replies[lang]
         elif cmd == "status":
             result = esp_get("/status")
-            reply = "Here is the current appliance status."
+            states = []
+            labels = device_names[lang]
+            for key in ("light", "rope", "fan", "tv"):
+                value = result.get(key)
+                if value is None:
+                    continue
+                is_on = value is True or str(value).lower() in ("on", "1", "true", "yes")
+                if lang == "en": states.append(f"{labels[key]} is {'on' if is_on else 'off'}")
+                elif lang == "yo": states.append(f"{labels[key]} {'ti tan' if is_on else 'ti pa'}")
+                elif lang == "ha": states.append(f"{labels[key]} {'a kunne yake' if is_on else 'a kashe yake'}")
+                else: states.append(f"{labels[key]} {'agbanyeela' if is_on else 'anyụla'}")
+            introductions = {
+                "en":"Current appliance status: ", "yo":"Eyi ni ipo awọn ẹrọ lọwọlọwọ: ",
+                "ha":"Ga yanayin na'urori a yanzu: ", "ig":"Nke a bụ ọnọdụ ngwa ugbu a: "
+            }
+            reply = introductions[lang] + (". ".join(states) if states else {
+                "en":"The ESP32 returned its current status.", "yo":"ESP32 ti da ipo awọn ẹrọ pada.",
+                "ha":"ESP32 ya dawo da bayanin yanayin na'urori.", "ig":"ESP32 eweghachila ọnọdụ ngwa."
+            }[lang])
         else:
             result = {}
-            reply = "Command completed."
+            reply = spoken_reply(cmd, lang)
         return {"ok": True, "language": lang, "command": cmd, "reply": reply, "device_data": result}
     except HTTPException as exc:
-        return {"ok": False, "language": lang, "command": cmd, "reply": str(exc.detail)}
+        errors = {
+            "en": f"I could not complete the command: {exc.detail}",
+            "yo": f"Mi ko le pari aṣẹ naa: {exc.detail}",
+            "ha": f"Ban iya kammala umarnin ba: {exc.detail}",
+            "ig": f"Enweghị m ike imezu iwu ahụ: {exc.detail}"
+        }
+        return {"ok": False, "language": lang, "command": cmd, "reply": errors[lang]}
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
@@ -257,37 +489,86 @@ def speak(request: Request, payload: dict):
     except requests.RequestException as exc:
         raise HTTPException(503, f"Offline TTS service is not available: {exc}")
 
+
 @app.post("/transcribe")
 async def transcribe(file: UploadFile = File(...), language: str = Form("auto")):
-    if whisper_model is None: raise HTTPException(503, "Whisper is not installed or failed to load.")
+    if whisper_model is None:
+        raise HTTPException(503, "Whisper is not installed or failed to load.")
+
     suffix = os.path.splitext(file.filename or "audio.webm")[1] or ".webm"
     content = await file.read()
-    if not content: raise HTTPException(400, "Empty audio")
-    if len(content) > 20 * 1024 * 1024: raise HTTPException(413, "Audio is larger than 20 MB")
+
+    if not content:
+        raise HTTPException(400, "Empty audio")
+
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(413, "Audio is larger than 20 MB")
+
     tmp = None
+
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as f:
-            f.write(content); tmp = f.name
-        lang = None if language in ("auto","") else language
+            f.write(content)
+            tmp = f.name
+
+        lang = None if language in ("auto", "") else language
+
+        language_prompts = {
+            "en": "RAMATECH HOME AI commands: turn on or off the light, rope light, fan, TV, everything; check status; what time is it; what date is it; weather; where are you; who created you; greet the audience; show commands.",
+            "yo": "Àwọn àṣẹ Yorùbá: Tan ina, Pa ina, Tan ina okun, Pa ina okun, Tan fan, Pa fan, Tan TV, Pa TV, Tan gbogbo nkan, Pa gbogbo nkan, Aago melo ni, Ọjọ wo ni oni, Nibo lo wa, Ta ni o dá ẹ.",
+            "ha": "Umarnin Hausa: Kunna haske, Kashe haske, Kunna hasken igiya, Kashe hasken igiya, Kunna fanka, Kashe fanka, Kunna talabijin, Kashe talabijin, Kunna komai, Kashe komai, Menene lokaci, Wace rana ce yau, Ina kake, Waye ya halicce ka.",
+            "ig": "Iwu Igbo: Gbanye ọkụ, Gbanyụọ ọkụ, Gbanye ọkụ eriri, Gbanyụọ ọkụ eriri, Gbanye fan, Gbanyụọ fan, Gbanye TV, Gbanyụọ TV, Gbanye ihe niile, Gbanyụọ ihe niile, Kedu oge, Kedu ụbọchị taa, Ebee ka ịnọ, Onye kere gị."
+        }
+
         segments, info = whisper_model.transcribe(
-    tmp,
-    language=lang,
-    vad_filter=False,
-    beam_size=5,
-    condition_on_previous_text=False
-)
-        
-        transcript = " ".join(seg.text.strip() for seg in segments).strip()
+            tmp,
+            language=lang,
+            initial_prompt=language_prompts.get(lang),
+            vad_filter=True,
+            vad_parameters={
+                "min_silence_duration_ms": 500,
+                "speech_pad_ms": 250
+            },
+            beam_size=5,
+            best_of=5,
+            condition_on_previous_text=False,
+            temperature=0.0
+        )
+
+        transcript = " ".join(
+            seg.text.strip() for seg in segments
+        ).strip()
+
         detected = info.language or "en"
-        mapped = detected if detected in LANGS else detect_language(transcript, language)
+
+        # Keep the selected language for replies and TTS.
+        # Auto mode uses Whisper's detected language.
+        mapped = (
+            lang if lang in LANGS
+            else detected if detected in LANGS
+            else detect_language(transcript, language)
+        )
+
         result = execute_command(transcript, mapped)
-        return {"ok":True,"transcript":transcript,"language":mapped,"command":result}
-    except HTTPException: raise
+
+        return {
+            "ok": True,
+            "transcript": transcript,
+            "language": mapped,
+            "command": result
+        }
+
+    except HTTPException:
+        raise
+
     except Exception as exc:
         log.exception("Transcription failed")
         raise HTTPException(500, f"Transcription failed: {exc}")
+
     finally:
-        if tmp and os.path.exists(tmp): os.unlink(tmp)
+        if tmp and os.path.exists(tmp):
+            os.unlink(tmp)
+
 
 @app.get("/proxy/{route}")
 def proxy(route: str, device: str = "", state: str = ""):
@@ -406,7 +687,14 @@ input,select{padding:12px;border-radius:9px;border:1px solid var(--line);backgro
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.big{font-size:32px;font-weight:bold;color:var(--gold)}.hidden{display:none!important}
 #log{white-space:pre-wrap;background:#081522;padding:12px;border-radius:10px;min-height:55px;color:#b9d3ed}
 .meter{height:12px;background:#263a55;border-radius:20px;overflow:hidden}.meter>div{height:100%;background:var(--cyan);width:0%}
-.commandlist{columns:2;line-height:1.8}@media(max-width:600px){.commandlist{columns:1}header{padding:18px}main{padding:12px}}
+.commandlist{columns:2;line-height:1.8}
+.command-language{border:1px solid var(--line);border-radius:12px;margin:12px 0;padding:12px;background:#0a1727}
+.command-language h4{margin:0 0 10px;color:var(--cyan)}
+.command-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:7px}
+.command-grid button{margin:0;min-height:48px;white-space:normal;line-height:1.25;font-size:13px;width:100%}
+.command-grid button.device-command{background:#087f73;color:#fff}
+.command-grid button.info-command{background:#314761;color:#fff}
+@media(max-width:600px){.commandlist{columns:1}header{padding:18px}main{padding:12px}.command-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style></head><body>
 <header><div><h1>🤖 RAMATECH HOME AI</h1><small>Indigenous multilingual smart-home automation prototype</small></div><div id="health">Connecting…</div></header>
 <main>
@@ -417,6 +705,7 @@ input,select{padding:12px;border-radius:9px;border:1px solid var(--line);backgro
 <section id="homePanel" class="panel"><h2>Home AI control</h2><p>Voice, typed commands and manual controls work without prepaid units in this mode.</p>
 <div class="grid" id="devices"></div>
 <h3>Select your speaking language</h3>
+<p class="muted">Choose the language you will speak. The selected language is sent to Whisper for recognition and to your local TTS engine for spoken replies.</p>
 
 <div class="row" id="languageButtons">
     <button onclick="selectLanguage('en')" class="lang-btn">🇬🇧 English</button>
@@ -431,6 +720,12 @@ input,select{padding:12px;border-radius:9px;border:1px solid var(--line);backgro
     <option value="ha">Hausa</option>
     <option value="ig">Igbo</option>
 </select>
+
+<div class="panel" style="margin-top:16px;background:#0c1929">
+    <h3>All 72 multilingual command buttons</h3>
+    <p class="muted">Each button runs the same command handler as voice recognition and sends appliance actions to the ESP32.</p>
+    <div id="commandButtons"></div>
+</div>
 
 <div class="row" style="margin-top:15px">
     <input id="typed" style="flex:1;min-width:220px"
@@ -460,6 +755,85 @@ input,select{padding:12px;border-radius:9px;border:1px solid var(--line);backgro
 let currentMode='HOME_AI', recorder=null, stream=null, listenTimer=null, busy=false, lastText='', lastAt=0;
 
 const names=['light','rope','fan','tv'];
+
+// Exactly 18 actions in each language: 72 working buttons in total.
+const PRESET_COMMANDS = {
+  en: {title:'🇬🇧 English',items:[
+    ['light_on','Turn on the light'],['light_off','Turn off the light'],
+    ['rope_on','Turn on the rope light'],['rope_off','Turn off the rope light'],
+    ['fan_on','Turn on the fan'],['fan_off','Turn off the fan'],
+    ['tv_on','Turn on the TV'],['tv_off','Turn off the TV'],
+    ['all_on','Turn on everything'],['all_off','Turn off everything'],
+    ['status','Check status'],['time','What time is it?'],['date','What date is it?'],
+    ['weather','How is the weather?'],['where','Where are you now?'],
+    ['creator','Who created you?'],['greet','Greet the audience'],['help','Show commands']
+  ]},
+  yo: {title:'🇳🇬 Yorùbá',items:[
+    ['light_on','Tan ina'],['light_off','Pa ina'],
+    ['rope_on','Tan ina okun'],['rope_off','Pa ina okun'],
+    ['fan_on','Tan fan'],['fan_off','Pa fan'],
+    ['tv_on','Tan TV'],['tv_off','Pa TV'],
+    ['all_on','Tan gbogbo nkan'],['all_off','Pa gbogbo nkan'],
+    ['status','Ṣayẹwo ipo awọn ẹrọ'],['time','Aago melo ni?'],['date','Ọjọ wo ni oni?'],
+    ['weather','Ojú ọjọ́ rí báwo?'],['where','Nibo lo wa?'],
+    ['creator','Ta ni o dá ẹ?'],['greet','Kí àwọn àlejò káàbọ̀'],['help','Fi àwọn àṣẹ hàn']
+  ]},
+  ha: {title:'🇳🇬 Hausa',items:[
+    ['light_on','Kunna haske'],['light_off','Kashe haske'],
+    ['rope_on','Kunna hasken igiya'],['rope_off','Kashe hasken igiya'],
+    ['fan_on','Kunna fanka'],['fan_off','Kashe fanka'],
+    ['tv_on','Kunna talabijin'],['tv_off','Kashe talabijin'],
+    ['all_on','Kunna komai'],['all_off','Kashe komai'],
+    ['status','Duba yanayin na’urori'],['time','Menene lokaci?'],['date','Wace rana ce yau?'],
+    ['weather','Yaya yanayi yake?'],['where','Ina kake?'],
+    ['creator','Waye ya halicce ka?'],['greet','Gaishe da jama’a'],['help','Nuna dukkan umarni']
+  ]},
+  ig: {title:'🇳🇬 Igbo',items:[
+    ['light_on','Gbanye ọkụ'],['light_off','Gbanyụọ ọkụ'],
+    ['rope_on','Gbanye ọkụ eriri'],['rope_off','Gbanyụọ ọkụ eriri'],
+    ['fan_on','Gbanye fan'],['fan_off','Gbanyụọ fan'],
+    ['tv_on','Gbanye TV'],['tv_off','Gbanyụọ TV'],
+    ['all_on','Gbanye ihe niile'],['all_off','Gbanyụọ ihe niile'],
+    ['status','Lelee ọnọdụ ngwaọrụ'],['time','Kedu oge?'],['date','Kedu ụbọchị taa?'],
+    ['weather','Kedu ka ihu igwe dị?'],['where','Ebee ka ịnọ?'],
+    ['creator','Onye kere gị?'],['greet','Kelee ndị ọbịa'],['help','Gosi iwu niile']
+  ]}
+};
+
+function renderCommandButtons(){
+  const root=document.getElementById('commandButtons');
+  if(!root)return;
+  root.innerHTML=Object.entries(PRESET_COMMANDS).map(([lang,group])=>`
+    <section class="command-language">
+      <h4>${group.title} · ${group.items.length} commands</h4>
+      <div class="command-grid">
+        ${group.items.map(([key,label])=>`<button class="${/_(on|off)$/.test(key)||key.startsWith('all_')?'device-command':'info-command'}" onclick="runPresetCommand('${lang}','${key}')">${label}</button>`).join('')}
+      </div>
+    </section>`).join('');
+}
+
+async function runPresetCommand(language,key){
+  const group=PRESET_COMMANDS[language];
+  const item=group && group.items.find(entry=>entry[0]===key);
+  if(!item)return;
+  const phrase=item[1];
+  log(`${group.title}: ${phrase}\nProcessing command...`);
+  try{
+    const result=await api('/command',{
+      method:'POST',
+      body:JSON.stringify({text:phrase,language})
+    });
+    log(`${group.title}: ${phrase}\n${result.reply||'Command processed.'}`+
+      (result.device_data?'\n'+JSON.stringify(result.device_data):''));
+    await speak(result.reply||'Command processed.',result.language||language);
+    if(['status','all_on','all_off'].includes(key)||/_on$|_off$/.test(key)){
+      await refreshMeter();
+    }
+  }catch(error){
+    log(`${group.title}: ${phrase}\n${error.message}`);
+    await speak(error.message,language);
+  }
+}
 
 const translations = {
     en: {
@@ -567,6 +941,7 @@ function refreshDeviceLabels(){
 }
 
 refreshDeviceLabels();
+renderCommandButtons();
 async function api(url,opts={}){let r=await fetch(url,{headers:{'Content-Type':'application/json'},...opts});let d=await r.json().catch(()=>({detail:r.statusText}));if(!r.ok)throw Error(d.detail||'Request failed');return d}
 async function changeMode(mode){try{let d=await api('/mode/'+mode,{method:'POST'});currentMode=mode;document.getElementById('homePanel').classList.toggle('hidden',mode!=='HOME_AI');document.getElementById('prepaidPanel').classList.toggle('hidden',mode!=='PREPAID');document.getElementById('homeMode').classList.toggle('active',mode==='HOME_AI');document.getElementById('prepaidMode').classList.toggle('active',mode==='PREPAID');log('Mode changed to '+mode);await refreshMeter()}catch(e){log('Could not change mode: '+e.message)}}
 async function control(device,state){
@@ -650,9 +1025,55 @@ async function sendTyped(){
 }
 async function speak(text,language){try{let r=await fetch('/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,language})});if(!r.ok)throw Error('TTS service unavailable');let blob=await r.blob(),url=URL.createObjectURL(blob),a=document.getElementById('player');a.src=url;a.playbackRate=Number(document.getElementById('speed').value);a.classList.remove('hidden');await a.play()}catch(e){console.warn(e);if('speechSynthesis' in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=({en:'en-NG',yo:'yo-NG',ha:'ha-NG',ig:'ig-NG'}[language]||'en-NG');u.rate=Number(document.getElementById('speed').value);speechSynthesis.speak(u)}else{log('TTS unavailable: '+e.message)}}}
 async function startListening(){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});recorder=new MediaRecorder(stream);let chunks=[];recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};recorder.onstop=async()=>{if(chunks.length){let blob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});chunks=[];await sendAudio(blob)}if(stream&&recorder&&recorder.state==='inactive'&&document.getElementById('listenBtn').dataset.stop!=='1'){recorder.start();listenTimer=setTimeout(()=>{if(recorder&&recorder.state==='recording')recorder.stop()},5500)}};document.getElementById('listenBtn').dataset.stop='0';document.getElementById('listenBtn').textContent='⏹ Stop listening';recorder.start();listenTimer=setTimeout(()=>{if(recorder&&recorder.state==='recording')recorder.stop()},5500);log('Listening continuously. Speak a command.');}catch(e){log('Microphone error: '+e.message)}}
-async function sendAudio(blob){if(busy||blob.size<1500)return;busy=true;try{let fd=new FormData();fd.append('file',blob,'voice.webm');fd.append('language',selectedLanguage());let r=await fetch('/transcribe',{method:'POST',body:fd}),d=await r.json();if(!r.ok)throw Error(d.detail||'Transcription failed');let t=(d.transcript||'').trim();if(t){let key=t.toLowerCase(),now=Date.now();if(key!==lastText||now-lastAt>7000){lastText=key;lastAt=now;let c=d.command;log('Heard: '+t+'\\n'+(c.reply||''));if(c.ok){
-    speak(c.reply,c.language || selectedLanguage());
-}}}}catch(e){console.warn(e)}finally{busy=false}}
+
+async function sendAudio(blob) {
+    if (busy || blob.size < 1500) return;
+
+    busy = true;
+
+    try {
+        const fd = new FormData();
+
+        fd.append("file", blob, "voice.webm");
+        fd.append("language", selectedLanguage());
+
+        const response = await fetch("/transcribe", {
+            method: "POST",
+            body: fd
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "Transcription failed");
+        }
+
+        const transcript = (data.transcript || "").trim();
+
+        if (!transcript) return;
+
+        const command = data.command || {};
+        const language = command.language || data.language || selectedLanguage();
+
+        log(
+            "Heard: " + transcript +
+            "\nCommand: " + (command.command || "Not recognized") +
+            "\n" + (command.reply || "Please repeat your command.")
+        );
+
+        if (command.ok && command.reply) {
+            await speak(command.reply, language);
+        }
+
+    } catch (error) {
+        console.error("Voice recognition error:", error);
+        log("Voice recognition error: " + error.message);
+
+    } finally {
+        busy = false;
+    }
+}
+
 function toggleListening(){let b=document.getElementById('listenBtn');if(!recorder||recorder.state==='inactive'&&!stream){startListening();return}if(b.dataset.stop==='1'){b.dataset.stop='0';b.textContent='🎙 Start hands-free listening';if(listenTimer)clearTimeout(listenTimer);try{if(recorder.state!=='inactive')recorder.stop()}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;recorder=null;log('Listening stopped.')}else{b.dataset.stop='1';b.textContent='🎙 Stopping…';if(listenTimer)clearTimeout(listenTimer);if(recorder&&recorder.state==='recording')recorder.stop();if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;recorder=null;b.dataset.stop='1';b.textContent='🎙 Start hands-free listening';log('Listening stopped.')}} 
 async function refreshMeter(){try{let d=await api('/proxy/meter/status');let secs=Number(d.prepaidSeconds||0),mins=Math.floor(secs/60),units=(secs/600).toFixed(2);document.getElementById('units').textContent=units;document.getElementById('remaining').textContent=mins+' min';document.getElementById('meterMode').textContent=d.mode||'—';document.getElementById('loadState').textContent=d.loadActive?'Appliance load is ON — time credit is counting down.':'No appliance load is active — time credit is not being deducted.';document.getElementById('bar').style.width=Math.min(100,(secs/3600)*100)+'%';meterLog(JSON.stringify(d,null,2))}catch(e){meterLog('Could not read meter: '+e.message)}}
 function amountLabel(){let n=Math.max(1,Math.min(100,Number(document.getElementById('buyUnits').value)||1));document.getElementById('amount').textContent='₦'+(n*100).toLocaleString('en-NG')}

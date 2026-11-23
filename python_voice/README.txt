@@ -28,3 +28,20 @@ To test the voice service by itself:
 Activate tts_env, then run:
 python -m uvicorn tts_service:app --host 127.0.0.1 --port 8766
 Visit http://127.0.0.1:8766/health
+
+
+for for venv
+cd /d C:\Users\Owner\Downloads\RAMADAN_HOME_AI_UPGRADE\python_voice
+.venv\Scripts\activate
+python -m uvicorn app:app --host 0.0.0.0 --port 8000
+
+cd /d C:\Users\Owner\Downloads\RAMADAN_HOME_AI_UPGRADE\python_voice
+.venv\Scripts\activate
+python -m uvicorn app:app --host 0.0.0.0 --port 8765
+
+for tts_env
+cd /d C:\Users\Owner\Downloads\RAMADAN_HOME_AI_UPGRADE\python_voice
+.venv-tts\Scripts\python.exe -m uvicorn tts_service:app --host 0.0.0.0 --port 8766
+
+to push to phone
+netsh advfirewall firewall add rule name="RAMATECH TTS 8766" dir=in action=allow protocol=TCP localport=8766 profile=any
