@@ -24,6 +24,15 @@ loaded_language = None
 tokenizer = None
 model = None
 model_lock = threading.Lock()
+@app.on_event("startup")
+def startup_load_voice():
+    logging.info("Starting RAMADAN HOME AI TTS engine...")
+    try:
+        with model_lock:
+            load_language("en")
+        logging.info("English default voice loaded successfully.")
+    except Exception:
+        logging.exception("TTS startup voice loading failed.")
 
 class SpeechRequest(BaseModel):
     text: str
