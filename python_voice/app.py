@@ -1,4 +1,4 @@
-import os, re, json, time, uuid, sqlite3, logging, tempfile, hashlib
+﻿import os, re, json, time, uuid, sqlite3, logging, tempfile, hashlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from urllib.parse import urlencode
@@ -781,15 +781,45 @@ def verify_and_credit(transaction_id: str):
     except requests.RequestException as exc:
         raise HTTPException(502, f"Payment verification or meter top-up failed: {exc}")
 
+
 @app.get("/payment/callback", response_class=HTMLResponse)
 def payment_callback(status: str = "", tx_ref: str = "", transaction_id: str = ""):
-    if status != "successful" or not transaction_id:
-        return HTMLResponse("<h2>Payment not completed</h2><p>No prepaid units were added. You can return to RAMATECH HOME AI and try again.</p>")
-    result = verify_and_credit(transaction_id)
-    return HTMLResponse(f"""<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>Payment result</title></head>
-    <body style='font-family:Arial;padding:30px;background:#101827;color:white'><h2>Payment verified</h2>
-    <p>{result['units']} unit(s) added successfully.</p><p>{result['minutes']} minutes of demonstration time added.</p>
-    <p>You may close this page and return to RAMATECH HOME AI.</p></body></html>""")
+    # Do not trust the callback status. Verify the transaction directly.
+    if not transaction_id:
+        return HTMLResponse(
+            "<h2>Payment could not be verified</h2>"
+            "<p>Transaction ID was not received. Contact support before paying again.</p>",
+            status_code=400
+        )
+
+    try:
+        result = verify_and_credit(transaction_id)
+
+        return HTMLResponse(f"""<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment result</title>
+</head>
+<body style="font-family:Arial;padding:30px;background:#101827;color:white">
+<h2>Payment verified successfully</h2>
+<p>{result['units']} prepaid unit(s) added.</p>
+<p>{result['minutes']} minutes of demonstration time added.</p>
+<p>You may close this page and return to RAMATECH HOME AI.</p>
+</body>
+</html>""")
+
+    except HTTPException as exc:
+        return HTMLResponse(f"""<!doctype html>
+<html>
+<head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:Arial;padding:30px;background:#101827;color:white">
+<h2>Payment verification or crediting failed</h2>
+<p>{exc.detail}</p>
+<p>Your transaction has not been confirmed as credited. Contact support before attempting another payment.</p>
+</body>
+</html>""", status_code=exc.status_code)
+
 
 @app.post("/payment/verify")
 def payment_verify(payload: dict):
