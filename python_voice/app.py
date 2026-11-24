@@ -1,4 +1,4 @@
-﻿import os, re, json, time, uuid, sqlite3, logging, tempfile, hashlib
+import os, re, json, time, uuid, sqlite3, logging, tempfile, hashlib
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from urllib.parse import urlencode
@@ -223,21 +223,6 @@ def normalize(s: str) -> str:
     s = re.sub(r"[^\w\s]", " ", s, flags=re.UNICODE)
     return re.sub(r"\s+", " ", s).strip()
 
-def esp_get(path, params=None, timeout=5):
-    try:
-        r = requests.get(f"{ESP32_URL}{path}", params=params, timeout=timeout)
-        r.raise_for_status()
-        try: return r.json()
-        except Exception: return {"ok": True, "text": r.text}
-    except requests.RequestException as exc:
-        raise HTTPException(status_code=502, detail=f"ESP32 connection failed: {exc}")
-
-def esp_secure_get(path, params=None):
-    if not ESP32_API_TOKEN:
-        raise HTTPException(status_code=503, detail="Set ESP32_API_TOKEN in .env and the matching token in the ESP32 sketch.")
-    params = dict(params or {})
-    params["key"] = ESP32_API_TOKEN
-    return esp_get(path, params=params, timeout=8)
 
 class CommandBody(BaseModel):
     text: str
