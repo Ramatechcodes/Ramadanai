@@ -16,7 +16,158 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("ramadan-home-ai")
 
 APP_NAME = os.getenv("ASSISTANT_NAME", "RAMADAN")
-ESP32_URL = os.getenv("ESP32_URL", "http://172.20.10.2").rstrip("/")
+
+# Cloud gateway connection
+ESP32_URL = os.getenv(
+    "ESP32_URL",
+    "https://ramatech-home-ai.onrender.com"
+).rstrip("/")
+
+BRIDGE_TOKEN = os.getenv(
+    "BRIDGE_TOKEN",
+    os.getenv("CLOUD_GATEWAY_BRIDGE_TOKEN", "")
+).strip()
+
+
+def gateway_request(method, endpoint, payload=None, timeout=12):
+    if not BRIDGE_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="BRIDGE_TOKEN is missing from RamadanAI environment variables."
+        )
+
+    headers = {
+        "Authorization": f"Bearer {BRIDGE_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.request(
+            method,
+            f"{ESP32_URL}{endpoint}",
+            headers=headers,
+            json=payload if method.upper() != "GET" else None,
+            timeout=timeout
+        )
+
+        try:
+            result = response.json()
+        except ValueError:
+            result = {"message": response.text}
+
+        if not response.ok:
+            detail = (
+                result.get("message")
+                or result.get("error")
+                or result.get("detail")
+                or f"Gateway returned HTTP {response.status_code}"
+            )
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=detail
+            )
+
+        return result
+
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Cloud gateway connection failed: {exc}"
+        )
+
+
+def esp_get(path, params=None, timeout=8):
+    params = dict(params or {})
+
+    if path == "/control":
+        device = str(params.get("device", "")).lower()
+        state = str(params.get("state", "")).lower()
+
+        return gateway_request(
+            "POST",
+            "/api/bridge/command",
+            {
+                "type": "command",
+                "device": device,
+                "state": state
+            },
+            timeout
+        )
+
+    if path == "/all":
+        return gateway_request(
+            "POST",
+            "/api/bridge/command",
+            {
+                "type": "all",
+                "state": str(params.get("state", "")).lower()
+            },
+            timeout
+        )
+
+    if path == "/status":
+        result = gateway_request(
+            "GET",
+            "/api/bridge/status",
+            timeout=timeout
+        )
+        return result.get("status", result)
+
+    if path == "/display":
+        return gateway_request(
+            "POST",
+            "/api/bridge/command",
+            {
+                "type": "display",
+                "line1": str(params.get("line1", "")),
+                "line2": str(params.get("line2", ""))
+            },
+            timeout
+        )
+
+    if path == "/meter/status":
+        return gateway_request(
+            "GET",
+            "/api/bridge/meter/status",
+            timeout=timeout
+        )
+
+    if path == "/time":
+        return {
+            "ok": True,
+            "message": "Time is handled by the RamadanAI server."
+        }
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"Unsupported ESP32 gateway route: {path}"
+    )
+
+
+def esp_secure_get(path, params=None):
+    params = dict(params or {})
+
+    if path == "/meter/topup":
+        return gateway_request(
+            "POST",
+            "/api/bridge/meter/topup",
+            params,
+            timeout=15
+        )
+
+    if path == "/meter/mode":
+        return gateway_request(
+            "POST",
+            "/api/bridge/meter/mode",
+            params,
+            timeout=15
+        )
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"Unsupported secure gateway route: {path}"
+    )
+
 ESP32_API_TOKEN = os.getenv("ESP32_API_TOKEN", "")
 TTS_SERVICE_URL = os.getenv("TTS_SERVICE_URL", "http://127.0.0.1:8766").rstrip("/")
 FLW_SECRET_KEY = os.getenv("FLW_SECRET_KEY", "")
