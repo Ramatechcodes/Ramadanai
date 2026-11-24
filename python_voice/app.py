@@ -1241,7 +1241,43 @@ async function sendAudio(blob) {
 }
 
 function toggleListening(){let b=document.getElementById('listenBtn');if(!recorder||recorder.state==='inactive'&&!stream){startListening();return}if(b.dataset.stop==='1'){b.dataset.stop='0';b.textContent='🎙 Start hands-free listening';if(listenTimer)clearTimeout(listenTimer);try{if(recorder.state!=='inactive')recorder.stop()}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;recorder=null;log('Listening stopped.')}else{b.dataset.stop='1';b.textContent='🎙 Stopping…';if(listenTimer)clearTimeout(listenTimer);if(recorder&&recorder.state==='recording')recorder.stop();if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;recorder=null;b.dataset.stop='1';b.textContent='🎙 Start hands-free listening';log('Listening stopped.')}} 
-async function refreshMeter(){try{let d=await api('/proxy/meter/status');let secs=Number(d.prepaidSeconds||0),mins=Math.floor(secs/60),units=(secs/600).toFixed(2);document.getElementById('units').textContent=units;document.getElementById('remaining').textContent=mins+' min';document.getElementById('meterMode').textContent=d.mode||'—';document.getElementById('loadState').textContent=d.loadActive?'Appliance load is ON — time credit is counting down.':'No appliance load is active — time credit is not being deducted.';document.getElementById('bar').style.width=Math.min(100,(secs/3600)*100)+'%';meterLog(JSON.stringify(d,null,2))}catch(e){meterLog('Could not read meter: '+e.message)}}
+
+async function refreshMeter() {
+  try {
+    const response = await api('/proxy/meter/status');
+
+    // Gateway wraps ESP32 data inside the status property.
+    const d = response.status || response;
+
+    const secs = Number(d.prepaidSeconds || 0);
+    const mins = Math.floor(secs / 60);
+    const units = (secs / 600).toFixed(2);
+
+    document.getElementById('units').textContent = units;
+    document.getElementById('remaining').textContent =
+      mins + ' min';
+
+    document.getElementById('meterMode').textContent =
+      d.mode || 'UNKNOWN';
+
+    const loadActive = Boolean(
+      d.loadActive || d.light || d.rope || d.fan || d.tv
+    );
+
+    document.getElementById('loadState').textContent =
+      loadActive
+        ? 'Appliance load is ON — time credit is counting down.'
+        : 'No appliance load is active — time credit is not being deducted.';
+
+    document.getElementById('bar').style.width =
+      Math.min(100, (secs / 3600) * 100) + '%';
+
+    meterLog(JSON.stringify(d, null, 2));
+
+  } catch (e) {
+    meterLog('Could not read meter: ' + e.message);
+  }
+}
 function amountLabel(){let n=Math.max(1,Math.min(100,Number(document.getElementById('buyUnits').value)||1));document.getElementById('amount').textContent='₦'+(n*100).toLocaleString('en-NG')}
 async function buyUnits(){let email=document.getElementById('email').value.trim(),units=Number(document.getElementById('buyUnits').value)||1;if(!email){meterLog('Enter your email address first.');return}try{let d=await api('/payment/initialize',{method:'POST',body:JSON.stringify({email,units})});location.href=d.checkout_url}catch(e){meterLog('Payment setup: '+e.message)}}
 async function health(){try{let d=await api('/health');document.getElementById('health').textContent='API online · TTS '+(d.offline_tts?'ready':'offline')+' · Whisper '+(d.whisper_loaded?'ready':'offline')}catch(e){document.getElementById('health').textContent='API connection issue'}}
